@@ -19,7 +19,7 @@ export default defineConfig({
         background_color: '#F7F4EB',
         display: 'standalone',
         orientation: 'portrait',
-        start_url: '/',
+        start_url: '/travel-planner/',
         icons: [
           {
             src: 'pic/icon-192.png',
