@@ -1,0 +1,228 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* 動森風格全域樣式（基於遊戲介面） */
+@layer base {
+  body {
+    background-color: #E8DCC8;
+    color: #6B563A;
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen',
+      'Ubuntu', 'Cantarell', 'Fira Sans', 'Droid Sans', 'Helvetica Neue',
+      sans-serif;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    position: relative;
+    z-index: 0;
+  }
+}
+
+/* 動森風格卡片組件（基於遊戲介面） */
+@layer components {
+  .card {
+    background-color: #F5EFE1;
+    border-radius: 40px;
+    box-shadow: 0 2px 8px rgba(107, 86, 58, 0.08);
+    padding: 1.5rem;
+  }
+
+  .card-inner {
+    background-color: #EFE8D8;
+    border-radius: 32px;
+    box-shadow: inset 0 2px 4px rgba(107, 86, 58, 0.06);
+    padding: 1rem;
+  }
+
+  .card-interactive {
+    @apply card transition-transform active:scale-[0.98] cursor-pointer;
+  }
+
+  /* 標題卡片 */
+  .card-header {
+    background-color: #7AC5AD;
+    color: white;
+    border-radius: 40px;
+    padding: 1rem 1.5rem;
+    text-align: center;
+    font-weight: bold;
+    font-size: 1.125rem;
+  }
+
+  /* 按鈕樣式（動森風格） */
+  .btn-primary {
+    background-color: #7AC5AD;
+    color: white;
+    border-radius: 24px;
+    padding: 1rem 2rem;
+    font-weight: bold;
+    font-size: 1rem;
+    transition: all 0.2s;
+    box-shadow: 0 2px 8px rgba(107, 86, 58, 0.08);
+  }
+
+  .btn-primary:active {
+    transform: scale(0.95);
+  }
+
+  .btn-accent {
+    background-color: #E9A15A;
+    color: white;
+    border-radius: 24px;
+    padding: 1rem 2rem;
+    font-weight: bold;
+    font-size: 1rem;
+    transition: all 0.2s;
+    box-shadow: 0 2px 8px rgba(107, 86, 58, 0.08);
+  }
+
+  .btn-accent:active {
+    transform: scale(0.95);
+  }
+
+  .btn-brown {
+    background-color: #8B6F47;
+    color: white;
+    border-radius: 24px;
+    padding: 1rem 2rem;
+    font-weight: bold;
+    font-size: 1rem;
+    transition: all 0.2s;
+    box-shadow: 0 2px 8px rgba(107, 86, 58, 0.08);
+  }
+
+  .btn-brown:active {
+    transform: scale(0.95);
+  }
+
+  .btn-outline {
+    border: 3px solid #8B6F47;
+    color: #8B6F47;
+    background-color: #F5EFE1;
+    border-radius: 24px;
+    padding: 1rem 2rem;
+    font-weight: bold;
+    font-size: 1rem;
+    transition: all 0.2s;
+  }
+
+  .btn-outline:active {
+    transform: scale(0.95);
+  }
+
+  /* 標籤樣式 */
+  .tag {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.25rem;
+    padding: 0.25rem 0.75rem;
+    border-radius: 9999px;
+    font-size: 0.875rem;
+    font-weight: 500;
+  }
+
+  .tag-yellow {
+    background-color: #F4C542;
+    color: #8B6F47;
+  }
+
+  .tag-pink {
+    background-color: #E89EA3;
+    color: white;
+  }
+}
+
+/* 滾動條樣式 */
+@layer utilities {
+  .scrollbar-hide::-webkit-scrollbar {
+    display: none;
+  }
+
+  .scrollbar-hide {
+    -ms-overflow-style: none;
+    scrollbar-width: none;
+  }
+
+  .animate-slide-up {
+    animation: slideUp 0.3s ease-out;
+  }
+
+  @keyframes slideUp {
+    from {
+      transform: translateY(100%);
+    }
+    to {
+      transform: translateY(0);
+    }
+  }
+
+  /* Loader Grid 動畫樣式（動森配色） */
+  .beforeEl {
+    position: absolute;
+    content: "";
+    display: block;
+    top: 50%;
+    left: 50%;
+    width: 0.5em;
+    height: 0.5em;
+    border-radius: 0.25em;
+    transform: translate(-50%, -50%);
+    animation: before8 2s infinite;
+  }
+
+  .afterEl {
+    position: absolute;
+    content: "";
+    display: block;
+    top: 50%;
+    left: 50%;
+    width: 0.5em;
+    height: 0.5em;
+    border-radius: 0.25em;
+    transform: translate(-50%, -50%);
+    animation: after6 2s infinite;
+  }
+
+  @keyframes before8 {
+    0% {
+      width: 0.5em;
+      box-shadow: 1em -0.5em rgba(122, 197, 173, 0.75),
+                -1em 0.5em rgba(233, 161, 90, 0.75);
+    }
+    35% {
+      width: 2.5em;
+      box-shadow: 0 -0.5em rgba(122, 197, 173, 0.75),
+                0 0.5em rgba(233, 161, 90, 0.75);
+    }
+    70% {
+      width: 0.5em;
+      box-shadow: -1em -0.5em rgba(122, 197, 173, 0.75),
+                1em 0.5em rgba(233, 161, 90, 0.75);
+    }
+    100% {
+      box-shadow: 1em -0.5em rgba(122, 197, 173, 0.75),
+                -1em 0.5em rgba(233, 161, 90, 0.75);
+    }
+  }
+
+  @keyframes after6 {
+    0% {
+      height: 0.5em;
+      box-shadow: 0.5em 1em rgba(200, 142, 167, 0.75),
+                -0.5em -1em rgba(244, 197, 66, 0.75);
+    }
+    35% {
+      height: 2.5em;
+      box-shadow: 0.5em 0 rgba(200, 142, 167, 0.75),
+                -0.5em 0 rgba(244, 197, 66, 0.75);
+    }
+    70% {
+      height: 0.5em;
+      box-shadow: 0.5em -1em rgba(200, 142, 167, 0.75),
+                -0.5em 1em rgba(244, 197, 66, 0.75);
+    }
+    100% {
+      box-shadow: 0.5em 1em rgba(200, 142, 167, 0.75),
+                -0.5em -1em rgba(244, 197, 66, 0.75);
+    }
+  }
+}
