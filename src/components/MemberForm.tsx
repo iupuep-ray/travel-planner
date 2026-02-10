@@ -17,16 +17,15 @@ export interface MemberFormData {
   avatar?: string;
 }
 
-// 預設頭像列表
-const BASE_URL = import.meta.env.BASE_URL;
-const getImagePath = (path: string) => `${BASE_URL}${path.startsWith('/') ? path.slice(1) : path}`;
-const DEFAULT_AVATARS = [
-  getImagePath('pic/defult-profile-pic1.png'),
-  getImagePath('pic/defult-profile-pic2.png'),
-  getImagePath('pic/defult-profile-pic3.png'),
-];
-
 const MemberForm = ({ initialData, onSubmit, onCancel }: MemberFormProps) => {
+  // 預設頭像列表
+  const BASE_URL = import.meta.env.BASE_URL;
+  const getImagePath = (path: string) => `${BASE_URL}${path.startsWith('/') ? path.slice(1) : path}`;
+  const DEFAULT_AVATARS = [
+    getImagePath('pic/defult-profile-pic1.png'),
+    getImagePath('pic/defult-profile-pic2.png'),
+    getImagePath('pic/defult-profile-pic3.png'),
+  ];
   const { user } = useAuth();
   const [formData, setFormData] = useState<MemberFormData>(
     initialData || {
