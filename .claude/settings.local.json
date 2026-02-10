@@ -10,7 +10,9 @@
       "Bash(npm run build:*)",
       "Bash(cat:*)",
       "Bash(git add:*)",
-      "Bash(git commit -m \"$(cat <<''EOF''\n🔧 修復 TypeScript 編譯錯誤\n\n- 移除未使用的 import (React, deleteUser, getFirestore, ICON_NAMES, getMemberNames, ShoppingSchedule, FlightSchedule)\n- 修復 Firestore 類型問題：添加 Firestore 類型斷言\n- 修復 PlanningFormData 缺少 relatedScheduleId 屬性\n- 修復 Schedule 類型守衛問題\n- 優化機票索引查找邏輯\n\n🤖 Generated with Claude Code\nCo-Authored-By: Claude <noreply@anthropic.com>\nEOF\n)\")"
+      "Bash(git commit -m \"$(cat <<''EOF''\n🔧 修復 TypeScript 編譯錯誤\n\n- 移除未使用的 import (React, deleteUser, getFirestore, ICON_NAMES, getMemberNames, ShoppingSchedule, FlightSchedule)\n- 修復 Firestore 類型問題：添加 Firestore 類型斷言\n- 修復 PlanningFormData 缺少 relatedScheduleId 屬性\n- 修復 Schedule 類型守衛問題\n- 優化機票索引查找邏輯\n\n🤖 Generated with Claude Code\nCo-Authored-By: Claude <noreply@anthropic.com>\nEOF\n)\")",
+      "Bash(git push)",
+      "Bash(git commit:*)"
     ],
     "deny": [],
     "ask": []
