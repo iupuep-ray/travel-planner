@@ -12,7 +12,7 @@ import { Tiles } from '@/components/ui/tiles';
 
 function App() {
   return (
-    <Router future={{ v7_startTransition: true, v7_relativeSplatPath: true }}>
+    <Router basename="/travel-planner" future={{ v7_startTransition: true, v7_relativeSplatPath: true }}>
       <AuthProvider>
         {/* Animated Grid Background */}
         <Tiles rows={30} cols={20} />
