@@ -37,11 +37,6 @@ const Planning = () => {
     return member?.name || '';
   };
 
-  // 取得多個成員名稱
-  const getMemberNames = (memberIds: string[]): string => {
-    return memberIds.map((id) => getMemberName(id)).join('、');
-  };
-
   // 依類型篩選清單項目
   const filteredItems = planningItems.filter((item) => item.type === activeTab);
 

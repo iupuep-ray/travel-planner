@@ -9,7 +9,7 @@ import BottomSheet from '@/components/BottomSheet';
 import ScheduleDetail from '@/components/ScheduleDetail';
 import ScheduleForm, { ScheduleFormData } from '@/components/ScheduleForm';
 import LoaderGrid from '@/components/ui/loader-grid';
-import type { Schedule as ScheduleType, FlightSchedule, ScheduleType as ScheduleTypeEnum, ShoppingSchedule } from '@/types';
+import type { Schedule as ScheduleType, ScheduleType as ScheduleTypeEnum } from '@/types';
 
 type ScheduleTab = 'flight' | 'lodging' | 'restaurant' | 'spot' | 'shopping';
 
@@ -195,12 +195,10 @@ const Schedule = () => {
 
           // 機票進一步依去程/回程篩選
           if (activeTab === 'flight') {
+            const flightSchedules = schedules.filter((item) => item.type === 'flight');
             filteredSchedules = filteredSchedules.filter((s) => {
-              const flight = s as FlightSchedule;
               // 假設第一筆是去程，第二筆是回程（可依據實際資料調整邏輯）
-              const flightIndex = schedules
-                .filter((item) => item.type === 'flight')
-                .indexOf(s);
+              const flightIndex = flightSchedules.findIndex((item) => item.id === s.id);
               return flightDirection === 'outbound' ? flightIndex === 0 : flightIndex === 1;
             });
           }
@@ -228,13 +226,17 @@ const Schedule = () => {
           if (activeTab === 'flight') {
             return (
               <div>
-                {filteredSchedules.map((schedule) => (
-                  <FlightCard
-                    key={schedule.id}
-                    flight={schedule as FlightSchedule}
-                    onClick={() => setSelectedSchedule(schedule)}
-                  />
-                ))}
+                {filteredSchedules.map((schedule) => {
+                  // 類型守衛：確保這是FlightSchedule
+                  if (schedule.type !== 'flight') return null;
+                  return (
+                    <FlightCard
+                      key={schedule.id}
+                      flight={schedule}
+                      onClick={() => setSelectedSchedule(schedule)}
+                    />
+                  );
+                })}
               </div>
             );
           }

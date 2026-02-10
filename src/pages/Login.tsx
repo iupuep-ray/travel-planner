@@ -1,7 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
-import { ICON_NAMES } from '@/utils/fontawesome';
 import { useAuth } from '@/contexts/AuthContext';
 import { LOCAL_IMAGES } from '@/config/images';
 import { auth } from '@/lib/firebase';

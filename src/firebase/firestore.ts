@@ -11,15 +11,16 @@ import {
   orderBy,
   Timestamp,
   CollectionReference,
-  DocumentData
+  DocumentData,
+  Firestore
 } from 'firebase/firestore';
 import type { Schedule, PlanningItem, Expense, Member } from '@/types';
 
-// Collection references
-export const schedulesRef = collection(db, 'schedules') as CollectionReference<Schedule>;
-export const planningRef = collection(db, 'planning') as CollectionReference<PlanningItem>;
-export const expensesRef = collection(db, 'expenses') as CollectionReference<Expense>;
-export const membersRef = collection(db, 'members') as CollectionReference<Member>;
+// Collection references (使用非空斷言，因為在使用前會檢查 Firebase 是否已配置)
+export const schedulesRef = collection(db as Firestore, 'schedules') as CollectionReference<Schedule>;
+export const planningRef = collection(db as Firestore, 'planning') as CollectionReference<PlanningItem>;
+export const expensesRef = collection(db as Firestore, 'expenses') as CollectionReference<Expense>;
+export const membersRef = collection(db as Firestore, 'members') as CollectionReference<Member>;
 
 // Helper function to convert dates to Firestore Timestamp
 export const toTimestamp = (dateString: string): Timestamp => {
@@ -48,12 +49,12 @@ export const scheduleService = {
   },
 
   async update(id: string, data: Partial<Schedule>) {
-    const docRef = doc(db, 'schedules', id);
+    const docRef = doc(db as Firestore, 'schedules', id);
     await updateDoc(docRef, data as DocumentData);
   },
 
   async delete(id: string) {
-    const docRef = doc(db, 'schedules', id);
+    const docRef = doc(db as Firestore, 'schedules', id);
     await deleteDoc(docRef);
   },
 };
@@ -75,12 +76,12 @@ export const planningService = {
   },
 
   async update(id: string, data: Partial<PlanningItem>) {
-    const docRef = doc(db, 'planning', id);
+    const docRef = doc(db as Firestore, 'planning', id);
     await updateDoc(docRef, data as DocumentData);
   },
 
   async delete(id: string) {
-    const docRef = doc(db, 'planning', id);
+    const docRef = doc(db as Firestore, 'planning', id);
     await deleteDoc(docRef);
   },
 
@@ -109,12 +110,12 @@ export const expenseService = {
   },
 
   async update(id: string, data: Partial<Expense>) {
-    const docRef = doc(db, 'expenses', id);
+    const docRef = doc(db as Firestore, 'expenses', id);
     await updateDoc(docRef, data as DocumentData);
   },
 
   async delete(id: string) {
-    const docRef = doc(db, 'expenses', id);
+    const docRef = doc(db as Firestore, 'expenses', id);
     await deleteDoc(docRef);
   },
 };
@@ -136,12 +137,12 @@ export const memberService = {
   },
 
   async update(id: string, data: Partial<Member>) {
-    const docRef = doc(db, 'members', id);
+    const docRef = doc(db as Firestore, 'members', id);
     await updateDoc(docRef, data as DocumentData);
   },
 
   async delete(id: string) {
-    const docRef = doc(db, 'members', id);
+    const docRef = doc(db as Firestore, 'members', id);
     await deleteDoc(docRef);
   },
 };

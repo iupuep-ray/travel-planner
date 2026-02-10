@@ -14,6 +14,7 @@ interface PlanningFormProps {
 export interface PlanningFormData {
   content: string;
   assigneeIds?: string[]; // 改為多選陣列
+  relatedScheduleId?: string; // 關聯的購物行程 ID
 }
 
 const PlanningForm = ({ type, members, initialData, onSubmit, onCancel }: PlanningFormProps) => {
