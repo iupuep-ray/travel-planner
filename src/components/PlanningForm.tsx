@@ -109,7 +109,11 @@ const PlanningForm = ({ type, members, initialData, onSubmit, onCancel }: Planni
                       className="w-8 h-8 rounded-full flex items-center justify-center text-sm font-bold text-white"
                       style={{ backgroundColor: '#7AC5AD' }}
                     >
-                      {member.name.charAt(0)}
+                      {member.avatar ? (
+                        <img src={member.avatar} alt={member.name} className="w-full h-full rounded-full object-cover" />
+                      ) : (
+                        member.name.charAt(0)
+                      )}
                     </div>
                     <span className="text-brown font-medium">{member.name}</span>
                   </div>

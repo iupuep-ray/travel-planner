@@ -10,7 +10,12 @@ import Planning from '@/pages/Planning';
 import Members from '@/pages/Members';
 import { Tiles } from '@/components/ui/tiles';
 
+
+
 function App() {
+  // Temporary useEffect to add initial flights
+
+
   return (
     <Router basename="/travel-planner" future={{ v7_startTransition: true, v7_relativeSplatPath: true }}>
       <AuthProvider>

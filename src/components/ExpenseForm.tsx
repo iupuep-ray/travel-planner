@@ -162,6 +162,17 @@ const ExpenseForm = ({ members, onSubmit, onCancel }: ExpenseFormProps) => {
                   onChange={() => toggleSplitMember(member.id)}
                   className="w-5 h-5 rounded accent-primary cursor-pointer"
                 />
+                {/* Avatar / Initial Display */}
+                <div
+                  className="w-8 h-8 rounded-full flex items-center justify-center text-base font-bold text-white flex-shrink-0"
+                  style={{ backgroundColor: '#7AC5AD' }} // Using a default accent color, consider dynamic color based on member ID
+                >
+                  {member.avatar ? (
+                    <img src={member.avatar} alt={member.name} className="w-full h-full rounded-full object-cover" />
+                  ) : (
+                    member.name.charAt(0)
+                  )}
+                </div>
                 <span className="flex-1 font-medium text-brown">{member.name}</span>
                 {formData.splitIds.includes(member.id) && (
                   <FontAwesomeIcon icon={['fas', ICON_NAMES.CHECK]} className="text-primary" />

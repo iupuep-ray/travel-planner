@@ -16,7 +16,10 @@
       "Bash(if [ -f .env ])",
       "Bash(then echo \"=== .env 檔案內容 ===\")",
       "Bash(else echo \".env 檔案不存在\")",
-      "Bash(fi)"
+      "Bash(fi)",
+      "Bash(curl:*)",
+      "Bash(git tag:*)",
+      "Bash(git push:*)"
     ],
     "deny": [],
     "ask": []

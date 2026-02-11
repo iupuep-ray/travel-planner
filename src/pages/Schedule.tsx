@@ -7,9 +7,9 @@ import FlightCard from '@/components/FlightCard';
 import ScheduleCard from '@/components/ScheduleCard';
 import BottomSheet from '@/components/BottomSheet';
 import ScheduleDetail from '@/components/ScheduleDetail';
-import ScheduleForm, { ScheduleFormData } from '@/components/ScheduleForm';
+import ScheduleForm, { ScheduleFormSubmitData } from '@/components/ScheduleForm';
 import LoaderGrid from '@/components/ui/loader-grid';
-import type { Schedule as ScheduleType, ScheduleType as ScheduleTypeEnum } from '@/types';
+import type { Schedule as ScheduleType, ScheduleType as ScheduleTypeEnum, FlightSchedule } from '@/types';
 
 type ScheduleTab = 'flight' | 'lodging' | 'restaurant' | 'spot' | 'shopping';
 
@@ -35,7 +35,7 @@ const Schedule = () => {
   const [showAddForm, setShowAddForm] = useState(false);
   const [editingSchedule, setEditingSchedule] = useState<ScheduleType | null>(null);
 
-  const handleAddSchedule = async (data: ScheduleFormData) => {
+  const handleAddSchedule = async (data: ScheduleFormSubmitData) => {
     try {
       // 建立行程並取得 ID
       const scheduleData = {
@@ -63,7 +63,7 @@ const Schedule = () => {
     }
   };
 
-  const handleEditSchedule = async (data: ScheduleFormData) => {
+  const handleEditSchedule = async (data: ScheduleFormSubmitData) => {
     if (!editingSchedule) return;
     try {
       await editSchedule(editingSchedule.id, data as any);
@@ -195,12 +195,17 @@ const Schedule = () => {
 
           // 機票進一步依去程/回程篩選
           if (activeTab === 'flight') {
-            const flightSchedules = schedules.filter((item) => item.type === 'flight');
-            filteredSchedules = filteredSchedules.filter((s) => {
-              // 假設第一筆是去程，第二筆是回程（可依據實際資料調整邏輯）
-              const flightIndex = flightSchedules.findIndex((item) => item.id === s.id);
-              return flightDirection === 'outbound' ? flightIndex === 0 : flightIndex === 1;
-            });
+            const allFlightSchedules = schedules.filter((item) => item.type === 'flight') as FlightSchedule[];
+
+            // Find the specific outbound and return flights by their flight numbers
+            const outboundFlight = allFlightSchedules.find(f => f.flightNumber === 'MM028');
+            const returnFlight = allFlightSchedules.find(f => f.flightNumber === 'MM027');
+
+            if (flightDirection === 'outbound') {
+              filteredSchedules = outboundFlight ? [outboundFlight] : [];
+            } else { // flightDirection === 'return'
+              filteredSchedules = returnFlight ? [returnFlight] : [];
+            }
           }
 
           if (filteredSchedules.length === 0) {

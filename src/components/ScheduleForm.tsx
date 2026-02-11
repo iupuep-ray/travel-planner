@@ -3,15 +3,9 @@ import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { ICON_NAMES } from '@/utils/fontawesome';
 import { uploadScheduleImage } from '@/services/storageService';
 import type { ScheduleType, Schedule } from '@/types';
+import DateTimePicker from '@/components/DateTimePicker';
 
-interface ScheduleFormProps {
-  type: Exclude<ScheduleType, 'flight'>;
-  onSubmit: (data: ScheduleFormData) => void;
-  onCancel: () => void;
-  editingSchedule?: Schedule | null;
-}
-
-export interface ScheduleFormData {
+export interface ScheduleFormSubmitData {
   name: string;
   address: string;
   startDateTime: string;
@@ -24,12 +18,34 @@ export interface ScheduleFormData {
   images?: string[];
 }
 
+interface ScheduleFormProps {
+  type: Exclude<ScheduleType, 'flight'>;
+  onSubmit: (data: ScheduleFormSubmitData) => void;
+  onCancel: () => void;
+  editingSchedule?: Schedule | null;
+}
+
+export interface ScheduleFormData {
+  name: string;
+  address: string;
+  startDateTime: Date | null;
+  endDateTime: Date | null;
+  checkIn?: Date | null;
+  checkOut?: Date | null;
+  url?: string;
+  notes?: string;
+  shoppingItems?: string[];
+  images?: string[];
+}
+
 const ScheduleForm = ({ type, onSubmit, onCancel, editingSchedule }: ScheduleFormProps) => {
   const [formData, setFormData] = useState<ScheduleFormData>({
     name: '',
     address: '',
-    startDateTime: '',
-    endDateTime: '',
+    startDateTime: null,
+    endDateTime: null,
+    checkIn: null,
+    checkOut: null,
     url: '',
     notes: '',
     shoppingItems: [],
@@ -47,10 +63,10 @@ const ScheduleForm = ({ type, onSubmit, onCancel, editingSchedule }: ScheduleFor
         setFormData({
           name: editingSchedule.name,
           address: editingSchedule.address,
-          startDateTime: '',
-          endDateTime: '',
-          checkIn: editingSchedule.checkIn,
-          checkOut: editingSchedule.checkOut,
+          startDateTime: null,
+          endDateTime: null,
+          checkIn: editingSchedule.checkIn ? new Date(editingSchedule.checkIn) : null,
+          checkOut: editingSchedule.checkOut ? new Date(editingSchedule.checkOut) : null,
           url: editingSchedule.url || '',
           notes: editingSchedule.notes || '',
           shoppingItems: [],
@@ -60,8 +76,8 @@ const ScheduleForm = ({ type, onSubmit, onCancel, editingSchedule }: ScheduleFor
         setFormData({
           name: editingSchedule.name,
           address: editingSchedule.address,
-          startDateTime: editingSchedule.startDateTime,
-          endDateTime: editingSchedule.endDateTime || '',
+          startDateTime: editingSchedule.startDateTime ? new Date(editingSchedule.startDateTime) : null,
+          endDateTime: editingSchedule.endDateTime ? new Date(editingSchedule.endDateTime) : null,
           url: editingSchedule.url || '',
           notes: editingSchedule.notes || '',
           shoppingItems: editingSchedule.shoppingItems || [],
@@ -71,8 +87,8 @@ const ScheduleForm = ({ type, onSubmit, onCancel, editingSchedule }: ScheduleFor
         setFormData({
           name: editingSchedule.name,
           address: editingSchedule.address,
-          startDateTime: editingSchedule.startDateTime,
-          endDateTime: editingSchedule.endDateTime || '',
+          startDateTime: editingSchedule.startDateTime ? new Date(editingSchedule.startDateTime) : null,
+          endDateTime: editingSchedule.endDateTime ? new Date(editingSchedule.endDateTime) : null,
           url: editingSchedule.url || '',
           notes: editingSchedule.notes || '',
           shoppingItems: [],
@@ -93,31 +109,39 @@ const ScheduleForm = ({ type, onSubmit, onCancel, editingSchedule }: ScheduleFor
     return titles[type];
   };
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-
-    // 如果有新上傳的圖片,先上傳圖片
-    if (imageFiles.length > 0) {
-      try {
-        setUploadingImages(true);
-        const tempId = editingSchedule?.id || `temp_${Date.now()}`;
-        const uploadPromises = imageFiles.map(file => uploadScheduleImage(file, tempId));
-        const uploadedUrls = await Promise.all(uploadPromises);
-
-        // 合併已有的圖片和新上傳的圖片
-        const allImages = [...(formData.images || []), ...uploadedUrls];
-        onSubmit({ ...formData, images: allImages });
-      } catch (error) {
-        console.error('圖片上傳失敗:', error);
-        alert('圖片上傳失敗,請稍後再試');
-      } finally {
-        setUploadingImages(false);
-      }
-    } else {
-      onSubmit(formData);
-    }
-  };
-
+      const handleSubmit = async (e: React.FormEvent) => {
+        e.preventDefault();
+  
+        // Convert Date objects back to string for onSubmit
+        const submissionData = {
+          ...formData,
+          checkIn: formData.checkIn instanceof Date ? formData.checkIn.toISOString().slice(0, 16) : '',
+          checkOut: formData.checkOut instanceof Date ? formData.checkOut.toISOString().slice(0, 16) : '',
+          startDateTime: formData.startDateTime instanceof Date ? formData.startDateTime.toISOString().slice(0, 16) : '',
+          endDateTime: formData.endDateTime instanceof Date ? formData.endDateTime.toISOString().slice(0, 16) : '',
+        };
+  
+        // 如果有新上傳的圖片,先上傳圖片
+        if (imageFiles.length > 0) {
+          try {
+            setUploadingImages(true);
+            const tempId = editingSchedule?.id || `temp_${Date.now()}`;
+            const uploadPromises = imageFiles.map(file => uploadScheduleImage(file, tempId));
+            const uploadedUrls = await Promise.all(uploadPromises);
+  
+            // 合併已有的圖片和新上傳的圖片
+            const allImages = [...(submissionData.images || []), ...uploadedUrls];
+            onSubmit({ ...submissionData, images: allImages });
+          } catch (error) {
+            console.error('圖片上傳失敗:', error);
+            alert('圖片上傳失敗,請稍後再試');
+          } finally {
+            setUploadingImages(false);
+          }
+        } else {
+          onSubmit(submissionData);
+        }
+      };
   const handleImageSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = e.target.files;
     if (files && files.length > 0) {
@@ -204,60 +228,35 @@ const ScheduleForm = ({ type, onSubmit, onCancel, editingSchedule }: ScheduleFor
         {/* DateTime Fields - 住宿使用 check-in/out，其他使用 start/end */}
         {type === 'lodging' ? (
           <>
-            <div className="grid grid-cols-2 gap-3 mb-4">
-              <div>
-                <label className="block text-sm font-bold text-brown mb-2">
-                  入住日期
-                  <span className="text-accent ml-1">*</span>
-                </label>
-                <input
-                  type="datetime-local"
-                  required
-                  value={formData.checkIn}
-                  onChange={(e) => setFormData({ ...formData, checkIn: e.target.value })}
-                  className="w-full px-3 py-3 rounded-[20px] bg-white border-2 border-cream focus:border-primary outline-none transition-colors text-brown text-sm"
-                />
-              </div>
-              <div>
-                <label className="block text-sm font-bold text-brown mb-2">
-                  退房日期
-                  <span className="text-accent ml-1">*</span>
-                </label>
-                <input
-                  type="datetime-local"
-                  required
-                  value={formData.checkOut}
-                  onChange={(e) => setFormData({ ...formData, checkOut: e.target.value })}
-                  className="w-full px-3 py-3 rounded-[20px] bg-white border-2 border-cream focus:border-primary outline-none transition-colors text-brown text-sm"
-                />
-              </div>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-3 mb-4">
+              <DateTimePicker
+                label="入住日期"
+                selected={formData.checkIn ?? null}
+                onChange={(date) => setFormData({ ...formData, checkIn: date })}
+                required
+              />
+              <DateTimePicker
+                label="退房日期"
+                selected={formData.checkOut ?? null}
+                onChange={(date) => setFormData({ ...formData, checkOut: date })}
+                required
+              />
             </div>
           </>
         ) : (
           <>
-            <div className="grid grid-cols-2 gap-3 mb-4">
-              <div>
-                <label className="block text-sm font-bold text-brown mb-2">
-                  開始時間
-                  <span className="text-accent ml-1">*</span>
-                </label>
-                <input
-                  type="datetime-local"
-                  required
-                  value={formData.startDateTime}
-                  onChange={(e) => setFormData({ ...formData, startDateTime: e.target.value })}
-                  className="w-full px-3 py-3 rounded-[20px] bg-white border-2 border-cream focus:border-primary outline-none transition-colors text-brown text-sm"
-                />
-              </div>
-              <div>
-                <label className="block text-sm font-bold text-brown mb-2">結束時間</label>
-                <input
-                  type="datetime-local"
-                  value={formData.endDateTime}
-                  onChange={(e) => setFormData({ ...formData, endDateTime: e.target.value })}
-                  className="w-full px-3 py-3 rounded-[20px] bg-white border-2 border-cream focus:border-primary outline-none transition-colors text-brown text-sm"
-                />
-              </div>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-3 mb-4">
+              <DateTimePicker
+                label="開始時間"
+                selected={formData.startDateTime ?? null}
+                onChange={(date) => setFormData({ ...formData, startDateTime: date })}
+                required
+              />
+              <DateTimePicker
+                label="結束時間"
+                selected={formData.endDateTime ?? null}
+                onChange={(date) => setFormData({ ...formData, endDateTime: date })}
+              />
             </div>
           </>
         )}
