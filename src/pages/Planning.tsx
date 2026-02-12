@@ -135,7 +135,7 @@ const Planning = () => {
   };
 
   return (
-    <div className="pb-20 relative z-10">
+    <>
       {/* Header */}
       <div
         className="text-white py-6 px-4 mb-4 rounded-b-[40px] relative z-10"
@@ -150,288 +150,290 @@ const Planning = () => {
         </div>
       </div>
 
-      {/* Tab Bar */}
-      <div className="px-4 mb-4">
-        <div
-          className="flex gap-2 p-2 rounded-[24px] relative z-10"
-          style={{ backgroundColor: '#FDFAF3' }}
-        >
-          {tabs.map((tab) => (
-            <button
-              key={tab.key}
-              onClick={() => setActiveTab(tab.key)}
-              className={`flex-1 py-3 px-4 rounded-[20px] font-bold text-sm transition-all flex items-center justify-center gap-2 ${
-                activeTab === tab.key
-                  ? 'bg-primary text-white shadow-soft'
-                  : 'text-brown'
-              }`}
-            >
-              <FontAwesomeIcon icon={['fas', tab.icon]} />
-              {tab.label}
-            </button>
-          ))}
-        </div>
-      </div>
-
-      {/* Content */}
-      <div className="px-4 relative z-10">
-        {loading ? (
-          <div className="text-center py-16">
-            <div className="text-[3rem] mb-4 flex justify-center">
-              <LoaderGrid />
-            </div>
-            <p className="text-brown opacity-60">載入中...</p>
-          </div>
-        ) : filteredItems.length === 0 ? (
+      <div className="pb-20 relative z-10">
+        {/* Tab Bar */}
+        <div className="px-4 mb-4">
           <div
-            className="text-center py-16 rounded-[40px] shadow-soft"
-            style={{ backgroundColor: '#F5EFE1' }}
+            className="flex gap-2 p-2 rounded-[24px] relative z-10"
+            style={{ backgroundColor: '#FDFAF3' }}
           >
-            <div className="mb-4">
-              <FontAwesomeIcon
-                icon={['fas', tabs.find((t) => t.key === activeTab)!.icon]}
-                className="text-6xl text-brown opacity-20"
-              />
-            </div>
-            <p className="text-brown opacity-60 mb-2">尚無{tabs.find((t) => t.key === activeTab)?.label}項目</p>
-            <p className="text-brown opacity-40 text-sm">點擊下方按鈕新增項目</p>
+            {tabs.map((tab) => (
+              <button
+                key={tab.key}
+                onClick={() => setActiveTab(tab.key)}
+                className={`flex-1 py-3 px-4 rounded-[20px] font-bold text-sm transition-all flex items-center justify-center gap-2 ${
+                  activeTab === tab.key
+                    ? 'bg-primary text-white shadow-soft'
+                    : 'text-brown'
+                }`}
+              >
+                <FontAwesomeIcon icon={['fas', tab.icon]} />
+                {tab.label}
+              </button>
+            ))}
           </div>
-        ) : activeTab === 'shopping' ? (
-          // 購物清單 - 分組顯示
-          <div className="space-y-4">
-            {Object.entries(groupedShoppingItems).map(([shopName, items]) => (
-              <div key={shopName}>
-                {/* 商店分類標題 */}
-                <div className="flex items-center gap-2 mb-2 px-2">
-                  <FontAwesomeIcon
-                    icon={['fas', shopName === '未分類' ? ICON_NAMES.SHOPPING : ICON_NAMES.MAP_LOCATION]}
-                    className="text-brown opacity-40 text-sm"
-                  />
-                  <h3 className="text-sm font-bold text-brown opacity-60">{shopName}</h3>
-                  <div className="flex-1 h-px bg-brown/10"></div>
-                </div>
+        </div>
 
-                {/* 商店的購物項目 */}
-                <div className="space-y-2">
-                  {items.map((item) => (
-                    <div
-                      key={item.id}
-                      className={`rounded-[20px] shadow-soft p-4 transition-all ${
-                        item.isDone ? 'bg-white/50' : 'bg-white'
-                      }`}
-                    >
-                      <div className="flex items-center gap-3">
-                        {/* Checkbox */}
-                        <button
-                          onClick={() => toggleItemDone(item.id)}
-                          className={`flex-shrink-0 w-6 h-6 rounded-full border-2 flex items-center justify-center transition-all active:scale-95 ${
-                            item.isDone
-                              ? 'bg-primary border-primary'
-                              : 'border-brown/30 hover:border-primary'
-                          }`}
-                        >
-                          {item.isDone && (
-                            <FontAwesomeIcon
-                              icon={['fas', ICON_NAMES.CHECK]}
-                              className="text-white text-xs"
-                            />
-                          )}
-                        </button>
+        {/* Content */}
+        <div className="px-4 relative z-10">
+          {loading ? (
+            <div className="text-center py-16">
+              <div className="text-[3rem] mb-4 flex justify-center">
+                <LoaderGrid />
+              </div>
+              <p className="text-brown opacity-60">載入中...</p>
+            </div>
+          ) : filteredItems.length === 0 ? (
+            <div
+              className="text-center py-16 rounded-[40px] shadow-soft"
+              style={{ backgroundColor: '#F5EFE1' }}
+            >
+              <div className="mb-4">
+                <FontAwesomeIcon
+                  icon={['fas', tabs.find((t) => t.key === activeTab)!.icon]}
+                  className="text-6xl text-brown opacity-20"
+                />
+              </div>
+              <p className="text-brown opacity-60 mb-2">尚無{tabs.find((t) => t.key === activeTab)?.label}項目</p>
+              <p className="text-brown opacity-40 text-sm">點擊下方按鈕新增項目</p>
+            </div>
+          ) : activeTab === 'shopping' ? (
+            // 購物清單 - 分組顯示
+            <div className="space-y-4">
+              {Object.entries(groupedShoppingItems).map(([shopName, items]) => (
+                <div key={shopName}>
+                  {/* 商店分類標題 */}
+                  <div className="flex items-center gap-2 mb-2 px-2">
+                    <FontAwesomeIcon
+                      icon={['fas', shopName === '未分類' ? ICON_NAMES.SHOPPING : ICON_NAMES.MAP_LOCATION]}
+                      className="text-brown opacity-40 text-sm"
+                    />
+                    <h3 className="text-sm font-bold text-brown opacity-60">{shopName}</h3>
+                    <div className="flex-1 h-px bg-brown/10"></div>
+                  </div>
 
-                        {/* Content */}
-                        <div className="flex-1 min-w-0">
-                          <p
-                            className={`font-medium transition-all ${
+                  {/* 商店的購物項目 */}
+                  <div className="space-y-2">
+                    {items.map((item) => (
+                      <div
+                        key={item.id}
+                        className={`rounded-[20px] shadow-soft p-4 transition-all ${
+                          item.isDone ? 'bg-white/50' : 'bg-white'
+                        }`}
+                      >
+                        <div className="flex items-center gap-3">
+                          {/* Checkbox */}
+                          <button
+                            onClick={() => toggleItemDone(item.id)}
+                            className={`flex-shrink-0 w-6 h-6 rounded-full border-2 flex items-center justify-center transition-all active:scale-95 ${
                               item.isDone
-                                ? 'text-brown opacity-40 line-through'
-                                : 'text-brown'
+                                ? 'bg-primary border-primary'
+                                : 'border-brown/30 hover:border-primary'
                             }`}
                           >
-                            {item.content}
-                          </p>
-                          {item.assigneeIds && item.assigneeIds.length > 0 && (
-                            <div className="flex items-center gap-1 mt-1 flex-wrap">
-                              {item.assigneeIds.map((assigneeId) => (
-                                <div key={assigneeId} className="flex items-center gap-1">
-                                  <div
-                                    className="w-4 h-4 rounded-full flex items-center justify-center text-[10px] font-bold text-white"
-                                    style={{ backgroundColor: '#7AC5AD' }}
-                                  >
-                                    {getMemberName(assigneeId).charAt(0)}
+                            {item.isDone && (
+                              <FontAwesomeIcon
+                                icon={['fas', ICON_NAMES.CHECK]}
+                                className="text-white text-xs"
+                              />
+                            )}
+                          </button>
+
+                          {/* Content */}
+                          <div className="flex-1 min-w-0">
+                            <p
+                              className={`font-medium transition-all ${
+                                item.isDone
+                                  ? 'text-brown opacity-40 line-through'
+                                  : 'text-brown'
+                              }`}
+                            >
+                              {item.content}
+                            </p>
+                            {item.assigneeIds && item.assigneeIds.length > 0 && (
+                              <div className="flex items-center gap-1 mt-1 flex-wrap">
+                                {item.assigneeIds.map((assigneeId) => (
+                                  <div key={assigneeId} className="flex items-center gap-1">
+                                    <div
+                                      className="w-4 h-4 rounded-full flex items-center justify-center text-[10px] font-bold text-white"
+                                      style={{ backgroundColor: '#7AC5AD' }}
+                                    >
+                                      {getMemberName(assigneeId).charAt(0)}
+                                    </div>
+                                    <span className="text-xs text-brown opacity-60">
+                                      {getMemberName(assigneeId)}
+                                    </span>
                                   </div>
-                                  <span className="text-xs text-brown opacity-60">
-                                    {getMemberName(assigneeId)}
-                                  </span>
-                                </div>
-                              ))}
+                                ))}
+                              </div>
+                            )}
+                          </div>
+
+                          {/* Action Buttons */}
+                          {!item.relatedScheduleId && (
+                            <div className="flex items-center gap-2">
+                              {/* Edit Button */}
+                              <button
+                                onClick={() => openEditForm(item)}
+                                className="flex-shrink-0 w-8 h-8 rounded-full bg-blue-100 text-blue-500 flex items-center justify-center transition-transform active:scale-95 hover:bg-blue-200"
+                              >
+                                <FontAwesomeIcon icon={['fas', ICON_NAMES.EDIT]} className="text-sm" />
+                              </button>
+                              {/* Delete Button */}
+                              <button
+                                onClick={() => {
+                                  if (confirm(`確定要刪除「${item.content}」嗎？`)) {
+                                    deleteItemHandler(item.id);
+                                  }
+                                }}
+                                className="flex-shrink-0 w-8 h-8 rounded-full bg-red-100 text-red-500 flex items-center justify-center transition-transform active:scale-95 hover:bg-red-200"
+                              >
+                                <FontAwesomeIcon icon={['fas', ICON_NAMES.DELETE]} className="text-sm" />
+                              </button>
                             </div>
                           )}
                         </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              ))}
+            </div>
+          ) : (
+            // Todo 和行李清單 - 一般列表顯示
+            <div className="space-y-2">
+              {filteredItems.map((item) => (
+                <div
+                  key={item.id}
+                  className={`rounded-[20px] shadow-soft p-4 transition-all ${
+                    item.isDone ? 'bg-white/50' : 'bg-white'
+                  }`}
+                >
+                  <div className="flex items-center gap-3">
+                    {/* Checkbox */}
+                    <button
+                      onClick={() => toggleItemDone(item.id)}
+                      className={`flex-shrink-0 w-6 h-6 rounded-full border-2 flex items-center justify-center transition-all active:scale-95 ${
+                        item.isDone
+                          ? 'bg-primary border-primary'
+                          : 'border-brown/30 hover:border-primary'
+                      }`}
+                    >
+                      {item.isDone && (
+                        <FontAwesomeIcon
+                          icon={['fas', ICON_NAMES.CHECK]}
+                          className="text-white text-xs"
+                        />
+                      )}
+                    </button>
 
-                        {/* Action Buttons */}
-                        {!item.relatedScheduleId && (
-                          <div className="flex items-center gap-2">
-                            {/* Edit Button */}
-                            <button
-                              onClick={() => openEditForm(item)}
-                              className="flex-shrink-0 w-8 h-8 rounded-full bg-blue-100 text-blue-500 flex items-center justify-center transition-transform active:scale-95 hover:bg-blue-200"
-                            >
-                              <FontAwesomeIcon icon={['fas', ICON_NAMES.EDIT]} className="text-sm" />
-                            </button>
-                            {/* Delete Button */}
-                            <button
-                              onClick={() => {
-                                if (confirm(`確定要刪除「${item.content}」嗎？`)) {
-                                  deleteItemHandler(item.id);
-                                }
-                              }}
-                              className="flex-shrink-0 w-8 h-8 rounded-full bg-red-100 text-red-500 flex items-center justify-center transition-transform active:scale-95 hover:bg-red-200"
-                            >
-                              <FontAwesomeIcon icon={['fas', ICON_NAMES.DELETE]} className="text-sm" />
-                            </button>
+                    {/* Content */}
+                    <div className="flex-1 min-w-0">
+                      <p
+                        className={`font-medium transition-all ${
+                          item.isDone
+                            ? 'text-brown opacity-40 line-through'
+                            : 'text-brown'
+                        }`}
+                      >
+                        {item.content}
+                      </p>
+                      {/* Related Schedule or Assignees */}
+                      <div className="flex items-center gap-2 mt-1 flex-wrap">
+                        {item.relatedScheduleId && (
+                          <span className="text-xs text-brown opacity-60 flex items-center gap-1">
+                            <FontAwesomeIcon icon={['fas', ICON_NAMES.MAP_LOCATION]} />
+                            來自行程
+                          </span>
+                        )}
+                        {item.assigneeIds && item.assigneeIds.length > 0 && (
+                          <div className="flex items-center gap-1 flex-wrap">
+                            {item.assigneeIds.map((assigneeId) => (
+                              <div key={assigneeId} className="flex items-center gap-1">
+                                <div
+                                  className="w-4 h-4 rounded-full flex items-center justify-center text-[10px] font-bold text-white"
+                                  style={{ backgroundColor: '#7AC5AD' }}
+                                >
+                                  {getMemberName(assigneeId).charAt(0)}
+                                </div>
+                                <span className="text-xs text-brown opacity-60">
+                                  {getMemberName(assigneeId)}
+                                </span>
+                              </div>
+                            ))}
                           </div>
                         )}
                       </div>
                     </div>
-                  ))}
-                </div>
-              </div>
-            ))}
-          </div>
-        ) : (
-          // Todo 和行李清單 - 一般列表顯示
-          <div className="space-y-2">
-            {filteredItems.map((item) => (
-              <div
-                key={item.id}
-                className={`rounded-[20px] shadow-soft p-4 transition-all ${
-                  item.isDone ? 'bg-white/50' : 'bg-white'
-                }`}
-              >
-                <div className="flex items-center gap-3">
-                  {/* Checkbox */}
-                  <button
-                    onClick={() => toggleItemDone(item.id)}
-                    className={`flex-shrink-0 w-6 h-6 rounded-full border-2 flex items-center justify-center transition-all active:scale-95 ${
-                      item.isDone
-                        ? 'bg-primary border-primary'
-                        : 'border-brown/30 hover:border-primary'
-                    }`}
-                  >
-                    {item.isDone && (
-                      <FontAwesomeIcon
-                        icon={['fas', ICON_NAMES.CHECK]}
-                        className="text-white text-xs"
-                      />
+
+                    {/* Action Buttons */}
+                    {!item.relatedScheduleId && (
+                      <div className="flex items-center gap-2">
+                        {/* Edit Button */}
+                        <button
+                          onClick={() => openEditForm(item)}
+                          className="flex-shrink-0 w-8 h-8 rounded-full bg-blue-100 text-blue-500 flex items-center justify-center transition-transform active:scale-95 hover:bg-blue-200"
+                        >
+                          <FontAwesomeIcon icon={['fas', ICON_NAMES.EDIT]} className="text-sm" />
+                        </button>
+                        {/* Delete Button */}
+                        <button
+                          onClick={() => {
+                            if (confirm(`確定要刪除「${item.content}」嗎？`)) {
+                              deleteItemHandler(item.id);
+                            }
+                          }}
+                          className="flex-shrink-0 w-8 h-8 rounded-full bg-red-100 text-red-500 flex items-center justify-center transition-transform active:scale-95 hover:bg-red-200"
+                        >
+                          <FontAwesomeIcon icon={['fas', ICON_NAMES.DELETE]} className="text-sm" />
+                        </button>
+                      </div>
                     )}
-                  </button>
-
-                  {/* Content */}
-                  <div className="flex-1 min-w-0">
-                    <p
-                      className={`font-medium transition-all ${
-                        item.isDone
-                          ? 'text-brown opacity-40 line-through'
-                          : 'text-brown'
-                      }`}
-                    >
-                      {item.content}
-                    </p>
-                    {/* Related Schedule or Assignees */}
-                    <div className="flex items-center gap-2 mt-1 flex-wrap">
-                      {item.relatedScheduleId && (
-                        <span className="text-xs text-brown opacity-60 flex items-center gap-1">
-                          <FontAwesomeIcon icon={['fas', ICON_NAMES.MAP_LOCATION]} />
-                          來自行程
-                        </span>
-                      )}
-                      {item.assigneeIds && item.assigneeIds.length > 0 && (
-                        <div className="flex items-center gap-1 flex-wrap">
-                          {item.assigneeIds.map((assigneeId) => (
-                            <div key={assigneeId} className="flex items-center gap-1">
-                              <div
-                                className="w-4 h-4 rounded-full flex items-center justify-center text-[10px] font-bold text-white"
-                                style={{ backgroundColor: '#7AC5AD' }}
-                              >
-                                {getMemberName(assigneeId).charAt(0)}
-                              </div>
-                              <span className="text-xs text-brown opacity-60">
-                                {getMemberName(assigneeId)}
-                              </span>
-                            </div>
-                          ))}
-                        </div>
-                      )}
-                    </div>
                   </div>
-
-                  {/* Action Buttons */}
-                  {!item.relatedScheduleId && (
-                    <div className="flex items-center gap-2">
-                      {/* Edit Button */}
-                      <button
-                        onClick={() => openEditForm(item)}
-                        className="flex-shrink-0 w-8 h-8 rounded-full bg-blue-100 text-blue-500 flex items-center justify-center transition-transform active:scale-95 hover:bg-blue-200"
-                      >
-                        <FontAwesomeIcon icon={['fas', ICON_NAMES.EDIT]} className="text-sm" />
-                      </button>
-                      {/* Delete Button */}
-                      <button
-                        onClick={() => {
-                          if (confirm(`確定要刪除「${item.content}」嗎？`)) {
-                            deleteItemHandler(item.id);
-                          }
-                        }}
-                        className="flex-shrink-0 w-8 h-8 rounded-full bg-red-100 text-red-500 flex items-center justify-center transition-transform active:scale-95 hover:bg-red-200"
-                      >
-                        <FontAwesomeIcon icon={['fas', ICON_NAMES.DELETE]} className="text-sm" />
-                      </button>
-                    </div>
-                  )}
                 </div>
-              </div>
-            ))}
-          </div>
-        )}
+              ))}
+            </div>
+          )}
+        </div>
+
+        {/* Floating Add Button */}
+        <button
+          className="fixed bottom-24 right-4 w-14 h-14 rounded-full flex items-center justify-center shadow-soft-lg transition-transform active:scale-95 z-30"
+          style={{ backgroundColor: '#7AC5AD' }}
+          onClick={() => setShowAddForm(true)}
+        >
+          <FontAwesomeIcon icon={['fas', ICON_NAMES.ADD]} className="text-2xl text-white" />
+        </button>
+
+        {/* Add Planning Item Form Bottom Sheet */}
+        <BottomSheet isOpen={showAddForm} onClose={() => setShowAddForm(false)}>
+          {showAddForm && (
+            <PlanningForm
+              type={activeTab}
+              members={members}
+              onSubmit={handleAddItem}
+              onCancel={() => setShowAddForm(false)}
+            />
+          )}
+        </BottomSheet>
+
+        {/* Edit Planning Item Form Bottom Sheet */}
+        <BottomSheet isOpen={!!editingItem} onClose={() => setEditingItem(null)}>
+          {editingItem && (
+            <PlanningForm
+              type={editingItem.type}
+              members={members}
+              initialData={{
+                content: editingItem.content,
+                assigneeIds: editingItem.assigneeIds || [],
+              }}
+              onSubmit={handleEditItem}
+              onCancel={() => setEditingItem(null)}
+            />
+          )}
+        </BottomSheet>
       </div>
-
-      {/* Floating Add Button */}
-      <button
-        className="fixed bottom-24 right-4 w-14 h-14 rounded-full flex items-center justify-center shadow-soft-lg transition-transform active:scale-95 z-30"
-        style={{ backgroundColor: '#7AC5AD' }}
-        onClick={() => setShowAddForm(true)}
-      >
-        <FontAwesomeIcon icon={['fas', ICON_NAMES.ADD]} className="text-2xl text-white" />
-      </button>
-
-      {/* Add Planning Item Form Bottom Sheet */}
-      <BottomSheet isOpen={showAddForm} onClose={() => setShowAddForm(false)}>
-        {showAddForm && (
-          <PlanningForm
-            type={activeTab}
-            members={members}
-            onSubmit={handleAddItem}
-            onCancel={() => setShowAddForm(false)}
-          />
-        )}
-      </BottomSheet>
-
-      {/* Edit Planning Item Form Bottom Sheet */}
-      <BottomSheet isOpen={!!editingItem} onClose={() => setEditingItem(null)}>
-        {editingItem && (
-          <PlanningForm
-            type={editingItem.type}
-            members={members}
-            initialData={{
-              content: editingItem.content,
-              assigneeIds: editingItem.assigneeIds || [],
-            }}
-            onSubmit={handleEditItem}
-            onCancel={() => setEditingItem(null)}
-          />
-        )}
-      </BottomSheet>
-    </div>
+    </>
   );
 };
 

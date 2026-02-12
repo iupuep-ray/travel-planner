@@ -126,7 +126,7 @@ const Home = () => {
 
   if (loading) {
     return (
-      <div className="pb-20 relative z-10">
+      <>
         {/* Weather Header Skeleton */}
         <div
           className="py-8 px-4 mb-4 rounded-b-[40px] relative z-10"
@@ -144,27 +144,29 @@ const Home = () => {
           </div>
         </div>
 
-        {/* Date Picker Skeleton */}
-        <div className="px-4 mb-6">
-          <div className="flex gap-2 overflow-x-auto">
-            {[...Array(7)].map((_, i) => (
-              <div key={i} className="flex-shrink-0 w-16 h-20 bg-cream rounded-[20px] animate-pulse" />
+        <div className="pb-20 relative z-10">
+          {/* Date Picker Skeleton */}
+          <div className="px-4 mb-6">
+            <div className="flex gap-2 overflow-x-auto">
+              {[...Array(7)].map((_, i) => (
+                <div key={i} className="flex-shrink-0 w-16 h-20 bg-cream rounded-[20px] animate-pulse" />
+              ))}
+            </div>
+          </div>
+
+          {/* Schedule Cards Skeleton */}
+          <div className="px-4">
+            {[...Array(3)].map((_, i) => (
+              <ScheduleCardSkeleton key={i} />
             ))}
           </div>
         </div>
-
-        {/* Schedule Cards Skeleton */}
-        <div className="px-4">
-          {[...Array(3)].map((_, i) => (
-            <ScheduleCardSkeleton key={i} />
-          ))}
-        </div>
-      </div>
+      </>
     );
   }
 
   return (
-    <div className="pb-20 relative z-10">
+    <>
       {/* Weather Header */}
       <div
         className="text-white py-8 px-4 mb-4 rounded-b-[40px] relative z-10"
@@ -183,53 +185,55 @@ const Home = () => {
         </div>
       </div>
 
-      {/* Date Picker */}
-      {travelDates.length > 0 && (
-        <DatePicker
-          dates={travelDates}
-          selectedDate={selectedDate}
-          onSelectDate={setSelectedDate}
-        />
-      )}
-
-      {/* Timeline */}
-      <div className="px-4 relative z-10">
-        {schedulesForDate.length === 0 ? (
-          <div className="card text-center py-16 relative overflow-hidden">
-            {/* Empty State with Image */}
-            <div className="flex justify-center mb-4">
-              <img
-                src={LOCAL_IMAGES.emptyStates.noSchedule}
-                alt=""
-                className="w-24 h-24 opacity-40"
-              />
-            </div>
-            <div className="relative z-10">
-              <p className="text-brown opacity-60 text-base font-medium">這天沒有安排行程</p>
-              <p className="text-brown opacity-40 text-sm mt-2">享受自由的一天吧！</p>
-            </div>
-          </div>
-        ) : (
-          <div>
-            {schedulesForDate.map((schedule) => (
-              <ScheduleCard
-                key={schedule.id}
-                schedule={schedule}
-                onClick={() => setSelectedSchedule(schedule)}
-              />
-            ))}
-          </div>
+      <div className="pb-20 relative z-10">
+        {/* Date Picker */}
+        {travelDates.length > 0 && (
+          <DatePicker
+            dates={travelDates}
+            selectedDate={selectedDate}
+            onSelectDate={setSelectedDate}
+          />
         )}
-      </div>
 
-      {/* Detail Bottom Sheet */}
-      <BottomSheet
-        isOpen={selectedSchedule !== null}
-        onClose={() => setSelectedSchedule(null)}
-      >
-        {selectedSchedule && <ScheduleDetail schedule={selectedSchedule} />}
-      </BottomSheet>
-    </div>
+        {/* Timeline */}
+        <div className="px-4 relative z-10">
+          {schedulesForDate.length === 0 ? (
+            <div className="card text-center py-16 relative overflow-hidden">
+              {/* Empty State with Image */}
+              <div className="flex justify-center mb-4">
+                <img
+                  src={LOCAL_IMAGES.emptyStates.noSchedule}
+                  alt=""
+                  className="w-24 h-24 opacity-40"
+                />
+              </div>
+              <div className="relative z-10">
+                <p className="text-brown opacity-60 text-base font-medium">這天沒有安排行程</p>
+                <p className="text-brown opacity-40 text-sm mt-2">享受自由的一天吧！</p>
+              </div>
+            </div>
+          ) : (
+            <div>
+              {schedulesForDate.map((schedule) => (
+                <ScheduleCard
+                  key={schedule.id}
+                  schedule={schedule}
+                  onClick={() => setSelectedSchedule(schedule)}
+                />
+              ))}
+            </div>
+          )}
+        </div>
+
+        {/* Detail Bottom Sheet */}
+        <BottomSheet
+          isOpen={selectedSchedule !== null}
+          onClose={() => setSelectedSchedule(null)}
+        >
+          {selectedSchedule && <ScheduleDetail schedule={selectedSchedule} />}
+        </BottomSheet>
+      </div>
+    </>
   );
 };
 
