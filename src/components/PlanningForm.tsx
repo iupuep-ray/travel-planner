@@ -51,7 +51,7 @@ const PlanningForm = ({ type, members, initialData, onSubmit, onCancel }: Planni
   };
 
   return (
-    <div className="bg-cream-light p-6 rounded-t-[32px] max-h-[85vh] overflow-y-auto">
+    <div className="bg-cream-light pt-6 px-6 pb-32 rounded-t-[32px] max-h-[85vh] overflow-y-auto">
       {/* Header */}
       <div className="flex items-center justify-between mb-6">
         <h2 className="text-2xl font-bold text-brown">{getTitle()}</h2>

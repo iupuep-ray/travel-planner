@@ -1,7 +1,7 @@
 # 旅遊手帳 - 動森風格團體旅遊規劃 App
 
-> **Version:** v0.0.6
-> **Last Updated:** 2026-02-11
+> **Version:** v1.0.2
+> **Last Updated:** 2026-02-14
 
 一個具備日系手帳感、高質感的 Mobile-first 團體旅遊規劃 PWA。
 
@@ -41,6 +41,25 @@ npm run dev
 ```bash
 npm run build
 ```
+
+## 🌐 部署
+
+完整流程請看 `DEPLOYMENT.md`，目前專案已支援以下部署方式：
+
+- **GitHub Pages（自動）**
+  - 使用 `.github/workflows/deploy.yml`
+  - 推送到 `main` 後自動部署
+- **GitHub Pages（手動）**
+  - 執行 `npm run deploy`
+- **Firebase Hosting**
+  - 已提供 `firebase.json` 與 `.firebaserc.example`
+  - 執行 `npm run build && firebase deploy --only hosting`
+
+### 部署前檢查
+
+- 設定 `VITE_FIREBASE_*` 環境變數（CI 使用 GitHub Secrets）
+- 若使用 Supabase 路徑，補上 `VITE_SUPABASE_URL` 與 `VITE_SUPABASE_ANON_KEY`
+- GitHub Pages 專案頁面模式下，`vite.config.ts` 的 `base` 應為 `/<repo>/`
 
 ## 🔖 版本歷程
 
@@ -147,7 +166,7 @@ npm run build
   - 費用刪除功能（含確認對話框）
   - 清算功能 (Netting 債務抵銷算法)
   - 清算結果展示（誰應付給誰多少錢）
-  - 匯率自動轉換（NTD ⇄ JPY，固定匯率 1:5）
+  - 匯率自動轉換（NTD ⇄ JPY，串接 Exchangerate-API）
 
 - 行程刪除功能
   - 行程詳情頁面新增刪除按鈕
@@ -256,8 +275,8 @@ npm run build
 **測試與部署：**
 - [ ] 單元測試撰寫
 - [ ] E2E 測試
-- [ ] 部署至 Firebase Hosting
-- [ ] 設定 CI/CD Pipeline
+- [x] 補齊 Firebase Hosting 設定檔（`firebase.json`、`.firebaserc.example`）
+- [x] 設定 CI/CD Pipeline（GitHub Pages Actions）
 
 ## 🔥 Firebase 設定
 
@@ -283,7 +302,11 @@ npm run build
 cp .env.example .env
 ```
 
-編輯 `.env` 檔案，填入你的 Firebase 配置資訊。
+編輯 `.env` 檔案，填入你的 Firebase 配置資訊，並補上：
+
+```env
+VITE_EXCHANGERATE_API_KEY=your_exchangerate_api_key_here
+```
 
 ## 📱 功能說明
 

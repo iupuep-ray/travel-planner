@@ -1,11 +1,34 @@
 #  專案開發規格書：團體旅遊規劃 Web App (動森手帳風)
 
-> **Current Version:** v1.0.0 🎉
-> **Last Updated:** 2026-02-11
+> **Current Version:** v1.0.2 🎉
+> **Last Updated:** 2026-02-12
 
 ---
 
 ## 版本歷程 (Version History)
+
+### v1.0.1 (2026-02-12) 功能增強與介面優化
+
+**已完成功能：**
+
+✅ **狀態列顯示優化**
+- 在 `index.html` 的 viewport meta 標籤中加入 `viewport-fit=cover`，使頁面內容延伸至安全區域之外。
+- 在 `MainLayout.tsx` 的 `main` 元素上新增 `padding-top: env(safe-area-inset-top)`，確保 Header 內容不會被狀態列遮擋。
+
+✅ **頁面 Header 全寬顯示修正**
+- 重構 `MainLayout.tsx`，將內容區域限制 `md:max-w-lg mx-auto` 應用到 `Outlet` 的容器上，讓頁面級別的 Header 能實現全寬。
+- 修正 `Home.tsx`, `Expense.tsx`, `Planning.tsx`, `Members.tsx` 等核心頁面，使其 Header 元素不再受限於 `md:max-w-lg` 而能全寬顯示。
+
+✅ **BottomSheet 顯示與滾動行為優化**
+- `BottomSheet.tsx` 的白色內容區域（控制整個彈窗內容高度的 `div`）恢復整體滾動能力 (`overflow-y-auto`)。
+- `BottomSheet.tsx` 的滾動內容容器 (`div class="px-6 ..."`) 中的 `overflow-y-auto` 被移除，讓滾動統一由外部白色區域控制。
+- `BottomSheet.tsx` 的滾動內容容器 (`div class="px-6 ..."`) 的 `padding-bottom` 調整為 `pb-32` (對應 `8rem`)。
+
+✅ **ExpenseDetail 與表單底部間距修正**
+- `ExpenseDetail.tsx` 最外層有顏色背景的 `div` (`bg-cream-light`) 調整 `padding-bottom` 為 `pb-32` (對應 `8rem`)。
+- `PlanningForm.tsx`, `ExpenseForm.tsx`, `MemberForm.tsx`, `ScheduleForm.tsx` 等表單的最外層 `div` (有 `bg-cream-light`) 的 `padding` 從 `p-6` 調整為 `pt-6 px-6 pb-32` (底部填充 `8rem`)，以確保表單按鈕不被底部導航欄遮擋。
+
+---
 
 ### v1.0.0 (2026-02-11) 🎉 正式版發布
 

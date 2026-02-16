@@ -4,6 +4,7 @@ import { ICON_NAMES } from '@/utils/fontawesome';
 import { uploadScheduleImage } from '@/services/storageService';
 import type { ScheduleType, Schedule } from '@/types';
 import DateTimePicker from '@/components/DateTimePicker';
+import { formatLocalDateTime } from '@/utils/date';
 
 export interface ScheduleFormSubmitData {
   name: string;
@@ -115,10 +116,10 @@ const ScheduleForm = ({ type, onSubmit, onCancel, editingSchedule }: ScheduleFor
         // Convert Date objects back to string for onSubmit
         const submissionData = {
           ...formData,
-          checkIn: formData.checkIn instanceof Date ? formData.checkIn.toISOString().slice(0, 16) : '',
-          checkOut: formData.checkOut instanceof Date ? formData.checkOut.toISOString().slice(0, 16) : '',
-          startDateTime: formData.startDateTime instanceof Date ? formData.startDateTime.toISOString().slice(0, 16) : '',
-          endDateTime: formData.endDateTime instanceof Date ? formData.endDateTime.toISOString().slice(0, 16) : '',
+          checkIn: formData.checkIn instanceof Date ? formatLocalDateTime(formData.checkIn) : '',
+          checkOut: formData.checkOut instanceof Date ? formatLocalDateTime(formData.checkOut) : '',
+          startDateTime: formData.startDateTime instanceof Date ? formatLocalDateTime(formData.startDateTime) : '',
+          endDateTime: formData.endDateTime instanceof Date ? formatLocalDateTime(formData.endDateTime) : '',
         };
   
         // 如果有新上傳的圖片,先上傳圖片
@@ -179,7 +180,7 @@ const ScheduleForm = ({ type, onSubmit, onCancel, editingSchedule }: ScheduleFor
   };
 
   return (
-    <div className="bg-cream-light p-6 rounded-t-[32px] max-h-[85vh] overflow-y-auto">
+    <div className="bg-cream-light pt-6 px-6 pb-32 rounded-t-[32px] max-h-[85vh] overflow-y-auto">
       {/* Header */}
       <div className="flex items-center justify-between mb-6">
         <h2 className="text-2xl font-bold text-brown">{getTitle()}</h2>

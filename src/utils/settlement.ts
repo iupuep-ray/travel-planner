@@ -1,18 +1,22 @@
 import type { Expense, Member, SettlementResult } from '@/types';
 
-// 固定匯率 NTD:JPY = 1:5
-const EXCHANGE_RATE = 5;
+export const DEFAULT_JPY_TO_NTD_RATE = 0.2;
 
 // 轉換為 NTD
-export const convertToNTD = (amount: number, currency: 'JPY' | 'NTD'): number => {
+export const convertToNTD = (
+  amount: number,
+  currency: 'JPY' | 'NTD',
+  jpyToNtdRate: number = DEFAULT_JPY_TO_NTD_RATE
+): number => {
   if (currency === 'NTD') return amount;
-  return Math.round(amount / EXCHANGE_RATE);
+  return Math.round(amount * jpyToNtdRate);
 };
 
 // 計算清算結果（Netting 算法）
 export const calculateSettlement = (
   expenses: Expense[],
-  members: Member[]
+  members: Member[],
+  jpyToNtdRate: number = DEFAULT_JPY_TO_NTD_RATE
 ): SettlementResult[] => {
   // 只計算未還款的費用
   const unsettledExpenses = expenses.filter((e) => !e.isSettled);
@@ -25,7 +29,7 @@ export const calculateSettlement = (
 
   // 計算每筆費用的影響
   unsettledExpenses.forEach((expense) => {
-    const totalNTD = convertToNTD(expense.amount, expense.currency);
+    const totalNTD = convertToNTD(expense.amount, expense.currency, jpyToNtdRate);
     const perPersonAmount = Math.round(totalNTD / expense.splitIds.length);
 
     // 付款人應收回的金額（總額 - 自己應付的）

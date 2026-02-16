@@ -1,5 +1,5 @@
 import { useEffect, useRef } from 'react';
-import { formatDisplayDate } from '@/utils/date';
+import { formatDate, formatDisplayDate } from '@/utils/date';
 
 interface DatePickerProps {
   dates: Date[];
@@ -38,13 +38,12 @@ const DatePicker = ({ dates, selectedDate, onSelectDate }: DatePickerProps) => {
         className="flex gap-3 px-2 overflow-x-auto scrollbar-hide relative z-10"
       >
         {dates.map((date) => {
-          const isSelected =
-            date.toISOString().split('T')[0] === selectedDate.toISOString().split('T')[0];
+          const isSelected = formatDate(date) === formatDate(selectedDate);
           const dateStr = formatDisplayDate(date);
 
           return (
             <button
-              key={date.toISOString()}
+              key={formatDate(date)}
               ref={isSelected ? selectedRef : null}
               onClick={() => handleDateClick(date)}
               className="flex-shrink-0 px-5 py-3 rounded-[24px] min-w-[85px] transition-all active:scale-95 font-bold text-sm whitespace-nowrap"

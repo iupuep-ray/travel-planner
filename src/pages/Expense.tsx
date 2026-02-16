@@ -7,11 +7,12 @@ import BottomSheet from '@/components/BottomSheet';
 import ExpenseForm, { ExpenseFormData } from '@/components/ExpenseForm';
 import ExpenseDetail from '@/components/ExpenseDetail';
 import ExpenseCardSkeleton from '@/components/skeletons/ExpenseCardSkeleton';
-import { calculateSettlement, convertToNTD } from '@/utils/settlement';
+import { fetchJpyToTwdRate } from '@/services/exchangeRateService';
+import { calculateSettlement, convertToNTD, DEFAULT_JPY_TO_NTD_RATE } from '@/utils/settlement';
 import { subscribeToSettlements, updateSettlementStatus } from '@/services/settlementService';
 import type { Expense as ExpenseType } from '@/types';
 
-type ExpenseTab = 'records' | 'settlement';
+type ExpenseTab = 'records' | 'calculator' | 'settlement';
 
 interface TabConfig {
   key: ExpenseTab;
@@ -21,11 +22,9 @@ interface TabConfig {
 
 const tabs: TabConfig[] = [
   { key: 'records', label: '記帳', icon: ICON_NAMES.LIST },
-  { key: 'settlement', label: '清算', icon: ICON_NAMES.CALCULATOR },
+  { key: 'calculator', label: '匯率計算機', icon: ICON_NAMES.CALCULATOR },
+  { key: 'settlement', label: '清算', icon: ICON_NAMES.CHECK },
 ];
-
-// 固定匯率 NTD:JPY = 1:5
-const EXCHANGE_RATE = 5;
 
 const Expense = () => {
   const { expenses, loading: expensesLoading, createExpense, removeExpense } = useExpenses();
@@ -34,8 +33,30 @@ const Expense = () => {
   const [showAddForm, setShowAddForm] = useState(false);
   const [selectedExpense, setSelectedExpense] = useState<ExpenseType | null>(null);
   const [settlementsMap, setSettlementsMap] = useState<Map<string, boolean>>(new Map());
+  const [exchangeRate, setExchangeRate] = useState<number>(DEFAULT_JPY_TO_NTD_RATE);
+  const [isExchangeRateFallback, setIsExchangeRateFallback] = useState(false);
+  const [exchangeRateUpdatedAt, setExchangeRateUpdatedAt] = useState<string | null>(null);
+  const [calculatorJpy, setCalculatorJpy] = useState('');
 
   const loading = expensesLoading || membersLoading;
+
+  useEffect(() => {
+    const loadExchangeRate = async () => {
+      try {
+        const rate = await fetchJpyToTwdRate();
+        setExchangeRate(rate);
+        setIsExchangeRateFallback(false);
+        setExchangeRateUpdatedAt(new Date().toISOString());
+      } catch (error) {
+        console.error('取得匯率失敗，改用預設匯率:', error);
+        setExchangeRate(DEFAULT_JPY_TO_NTD_RATE);
+        setIsExchangeRateFallback(true);
+        setExchangeRateUpdatedAt(null);
+      }
+    };
+
+    loadExchangeRate();
+  }, []);
 
   // 監聽清算狀態
   useEffect(() => {
@@ -53,7 +74,7 @@ const Expense = () => {
 
   // 計算清算結果
   const settlementResults = useMemo(() => {
-    const results = calculateSettlement(expenses, members);
+    const results = calculateSettlement(expenses, members, exchangeRate);
     // 將儲存的狀態合併到計算結果中
     return results.map(result => {
       const key = `${result.from}-${result.to}`;
@@ -62,7 +83,7 @@ const Expense = () => {
         isSettled: settlementsMap.get(key) || false,
       };
     });
-  }, [expenses, members, settlementsMap]);
+  }, [expenses, members, settlementsMap, exchangeRate]);
 
   // 取得成員名稱
   const getMemberName = (memberId: string): string => {
@@ -72,8 +93,33 @@ const Expense = () => {
 
   // 計算每人應付金額
   const calculatePerPersonAmount = (expense: ExpenseType): number => {
-    const totalNTD = convertToNTD(expense.amount, expense.currency);
+    const totalNTD = convertToNTD(expense.amount, expense.currency, exchangeRate);
     return Math.round(totalNTD / expense.splitIds.length);
+  };
+
+  const calculatorNtd = useMemo(() => {
+    const jpy = Number(calculatorJpy || '0');
+    if (Number.isNaN(jpy) || jpy < 0) return 0;
+    return Math.round(jpy * exchangeRate);
+  }, [calculatorJpy, exchangeRate]);
+  const calculatorJpyValue = Number(calculatorJpy || '0');
+
+  const appendCalculatorValue = (value: string) => {
+    setCalculatorJpy((prev) => {
+      if (prev.length >= 12) return prev;
+      if (prev === '0') {
+        return value === '0' || value === '00' ? '0' : value;
+      }
+      return `${prev}${value}`;
+    });
+  };
+
+  const handleCalculatorClear = () => {
+    setCalculatorJpy('');
+  };
+
+  const handleCalculatorBackspace = () => {
+    setCalculatorJpy((prev) => prev.slice(0, -1));
   };
 
   const handleAddExpense = async (data: ExpenseFormData) => {
@@ -125,7 +171,16 @@ const Expense = () => {
           <FontAwesomeIcon icon={['fas', ICON_NAMES.WALLET]} className="text-4xl" />
           <div>
             <h1 className="text-2xl font-bold">記帳本</h1>
-            <p className="text-sm opacity-90">匯率 1 NTD = 5 JPY</p>
+            <p className="text-sm opacity-90">
+              匯率 1 JPY = NT${exchangeRate.toFixed(4)}
+            </p>
+            <p className="text-xs opacity-75">
+              {isExchangeRateFallback
+                ? '目前使用預設匯率（API 讀取失敗）'
+                : exchangeRateUpdatedAt
+                  ? `更新時間：${new Date(exchangeRateUpdatedAt).toLocaleString('zh-TW')}`
+                  : '匯率載入中...'}
+            </p>
           </div>
         </div>
       </div>
@@ -183,7 +238,7 @@ const Expense = () => {
                 <div className="space-y-3">
                   {expenses.map((expense) => {
                     const perPersonAmount = calculatePerPersonAmount(expense);
-                    const totalNTD = convertToNTD(expense.amount, expense.currency);
+                    const totalNTD = convertToNTD(expense.amount, expense.currency, exchangeRate);
 
                     return (
                       <div
@@ -218,7 +273,7 @@ const Expense = () => {
                           <div>
                             <p className="text-xs text-brown opacity-60 mb-1">總金額</p>
                             <p className="text-xl font-bold text-accent">
-                              ¥{expense.amount.toLocaleString()}
+                              {expense.currency === 'JPY' ? '¥' : 'NT$'}{expense.amount.toLocaleString()}
                             </p>
                             <p className="text-xs text-brown opacity-60">
                               = NT${totalNTD.toLocaleString()}
@@ -238,6 +293,65 @@ const Expense = () => {
                   })}
                 </div>
               )}
+            </div>
+          ) : activeTab === 'calculator' ? (
+            <div
+              className="rounded-[28px] shadow-soft p-4"
+              style={{ backgroundColor: '#F5EFE1' }}
+            >
+              <div className="rounded-[22px] bg-white px-4 py-4 border border-brown/10 mb-4">
+                <div className="flex items-center justify-between rounded-[16px] px-3 py-2 mb-3 bg-brown/5">
+                  <div>
+                    <p className="text-xs text-brown opacity-70">日幣輸入</p>
+                    <p className="text-2xl font-bold text-brown">
+                      ¥{calculatorJpyValue.toLocaleString()}
+                    </p>
+                  </div>
+                  <FontAwesomeIcon icon={['fas', ICON_NAMES.CALCULATOR]} className="text-brown opacity-50 text-xl" />
+                </div>
+
+                <div
+                  className="rounded-[18px] px-4 py-4 text-left"
+                  style={{ backgroundColor: '#78A153' }}
+                >
+                  <p className="text-xs text-white/90 mb-1">轉換後台幣</p>
+                  <p className="text-4xl font-extrabold text-white tracking-wide">
+                    NT${calculatorNtd.toLocaleString()}
+                  </p>
+                </div>
+              </div>
+
+              <div className="grid grid-cols-3 gap-2">
+                {['1', '2', '3', '4', '5', '6', '7', '8', '9'].map((value) => (
+                  <button
+                    key={value}
+                    onClick={() => appendCalculatorValue(value)}
+                    className="py-3 rounded-xl bg-white text-brown font-bold border border-brown/10 active:scale-95 transition-transform shadow-soft"
+                  >
+                    {value}
+                  </button>
+                ))}
+                <button
+                  onClick={handleCalculatorClear}
+                  className="py-3 rounded-xl text-white font-bold active:scale-95 transition-transform"
+                  style={{ backgroundColor: '#E89EA3' }}
+                >
+                  C
+                </button>
+                <button
+                  onClick={() => appendCalculatorValue('0')}
+                  className="py-3 rounded-xl bg-white text-brown font-bold border border-brown/10 active:scale-95 transition-transform shadow-soft"
+                >
+                  0
+                </button>
+                <button
+                  onClick={handleCalculatorBackspace}
+                  className="py-3 rounded-xl text-white font-bold active:scale-95 transition-transform"
+                  style={{ backgroundColor: '#8B6F47' }}
+                >
+                  ⌫
+                </button>
+              </div>
             </div>
           ) : (
             <div>
@@ -314,7 +428,7 @@ const Expense = () => {
                       <div className="text-center pt-3 border-t border-brown/10">
                         <p className="text-2xl font-bold text-accent">NT${result.amount.toLocaleString()}</p>
                         <p className="text-xs text-brown opacity-60 mt-1">
-                          = ¥{(result.amount * EXCHANGE_RATE).toLocaleString()}
+                          = ¥{Math.round(result.amount / exchangeRate).toLocaleString()}
                         </p>
                       </div>
 
@@ -366,6 +480,7 @@ const Expense = () => {
             <ExpenseDetail
               expense={selectedExpense}
               members={members}
+              exchangeRate={exchangeRate}
               onDelete={handleDeleteExpense}
             />
           )}

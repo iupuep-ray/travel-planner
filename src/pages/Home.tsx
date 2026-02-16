@@ -1,4 +1,4 @@
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect } from 'react';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import DatePicker from '@/components/DatePicker';
 import ScheduleCard from '@/components/ScheduleCard';
@@ -10,17 +10,32 @@ import { formatDate, parseDate, getDaysBetween, isSameDay } from '@/utils/date';
 import { ICON_NAMES } from '@/utils/fontawesome';
 import { LOCAL_IMAGES } from '@/config/images';
 import type { Schedule } from '@/types';
+import {
+  fetchWeatherForDate,
+  getConfiguredTripDates,
+  getTripLocationByDate,
+  isWithinForecastRange,
+  type HomeWeatherInfo,
+} from '@/services/weatherService';
 
 const Home = () => {
   const { schedules, loading } = useSchedules();
   const [selectedSchedule, setSelectedSchedule] = useState<Schedule | null>(null);
+  const [weather, setWeather] = useState<HomeWeatherInfo>({
+    icon: ICON_NAMES.CLOUD_SUN,
+    temp: '--°C',
+    condition: '天氣載入中...',
+    location: '大阪',
+  });
+  const [weatherLoading, setWeatherLoading] = useState(false);
 
   // 計算旅遊日期範圍
   const travelDates = useMemo(() => {
-    if (schedules.length === 0) return [];
+    const configuredDates = getConfiguredTripDates(new Date().getFullYear());
+    if (schedules.length === 0) return configuredDates;
 
-    let minDate = new Date();
-    let maxDate = new Date();
+    let minDate: Date | null = null;
+    let maxDate: Date | null = null;
 
     schedules.forEach((schedule) => {
       let scheduleDate: Date;
@@ -30,10 +45,10 @@ const Home = () => {
       } else if (schedule.type === 'lodging') {
         const checkIn = parseDate(schedule.checkIn);
         const checkOut = parseDate(schedule.checkOut);
-        if (checkIn < minDate || minDate.toISOString() === new Date().toISOString()) {
+        if (!minDate || checkIn < minDate) {
           minDate = checkIn;
         }
-        if (checkOut > maxDate) {
+        if (!maxDate || checkOut > maxDate) {
           maxDate = checkOut;
         }
         return;
@@ -41,15 +56,23 @@ const Home = () => {
         scheduleDate = parseDate(schedule.startDateTime);
       }
 
-      if (minDate.toISOString() === new Date().toISOString() || scheduleDate < minDate) {
+      if (!minDate || scheduleDate < minDate) {
         minDate = scheduleDate;
       }
-      if (scheduleDate > maxDate) {
+      if (!maxDate || scheduleDate > maxDate) {
         maxDate = scheduleDate;
       }
     });
 
-    return getDaysBetween(minDate, maxDate);
+    const scheduleDates = minDate && maxDate ? getDaysBetween(minDate, maxDate) : [];
+    const mergedDates = [...scheduleDates, ...configuredDates];
+    const uniqueDateMap = new Map<string, Date>();
+
+    mergedDates.forEach((date) => {
+      uniqueDateMap.set(formatDate(date), date);
+    });
+
+    return [...uniqueDateMap.values()].sort((a, b) => a.getTime() - b.getTime());
   }, [schedules]);
 
   const [selectedDate, setSelectedDate] = useState<Date>(
@@ -70,9 +93,9 @@ const Home = () => {
         // 跨日顯示：在入住到退房期間的每一天都顯示
         const checkIn = parseDate(schedule.checkIn);
         const checkOut = parseDate(schedule.checkOut);
-        const checkInDate = new Date(formatDate(checkIn));
-        const checkOutDate = new Date(formatDate(checkOut));
-        const currentDate = new Date(formatDate(selectedDate));
+        const checkInDate = new Date(checkIn.getFullYear(), checkIn.getMonth(), checkIn.getDate());
+        const checkOutDate = new Date(checkOut.getFullYear(), checkOut.getMonth(), checkOut.getDate());
+        const currentDate = new Date(selectedDate.getFullYear(), selectedDate.getMonth(), selectedDate.getDate());
 
         if (currentDate >= checkInDate && currentDate < checkOutDate) {
           filtered.push(schedule);
@@ -113,15 +136,59 @@ const Home = () => {
     });
   }, [schedules, selectedDate]);
 
-  // 模擬天氣資訊
-  const weather = useMemo(() => {
-    const random = selectedDate.getDate() % 3;
-    const weathers = [
-      { icon: ICON_NAMES.SUN, temp: '18°C', condition: '晴天' },
-      { icon: ICON_NAMES.CLOUD_SUN, temp: '16°C', condition: '多雲' },
-      { icon: ICON_NAMES.CLOUD_RAIN, temp: '14°C', condition: '雨天' },
-    ];
-    return weathers[random];
+  useEffect(() => {
+    let cancelled = false;
+
+    const loadWeather = async () => {
+      const location = getTripLocationByDate(selectedDate);
+      if (!location) {
+        setWeather({
+          icon: ICON_NAMES.CLOUD_SUN,
+          temp: '--°C',
+          condition: '此日期未設定天氣查詢地點',
+          location: '未指定',
+        });
+        return;
+      }
+
+      if (!isWithinForecastRange(selectedDate)) {
+        setWeather({
+          icon: ICON_NAMES.CLOUD_SUN,
+          temp: '--°C',
+          condition: '需於16天內才可取得天氣預報資訊',
+          location: location.name,
+        });
+        return;
+      }
+
+      setWeatherLoading(true);
+      try {
+        const result = await fetchWeatherForDate(selectedDate);
+        if (!cancelled && result) {
+          setWeather(result);
+        }
+      } catch (error) {
+        if (!cancelled) {
+          console.error('取得天氣預報失敗:', error);
+          setWeather({
+            icon: ICON_NAMES.CLOUD_SUN,
+            temp: '--°C',
+            condition: '天氣預報暫時無法取得',
+            location: location.name,
+          });
+        }
+      } finally {
+        if (!cancelled) {
+          setWeatherLoading(false);
+        }
+      }
+    };
+
+    loadWeather();
+
+    return () => {
+      cancelled = true;
+    };
   }, [selectedDate]);
 
   if (loading) {
@@ -181,6 +248,10 @@ const Home = () => {
           <div>
             <p className="text-3xl font-bold drop-shadow-md">{weather.temp}</p>
             <p className="text-sm opacity-90">{weather.condition}</p>
+            <p className="text-xs opacity-80 mt-1">
+              {weather.location}
+              {weatherLoading ? ' ・ 更新中...' : ''}
+            </p>
           </div>
         </div>
       </div>

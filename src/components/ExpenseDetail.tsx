@@ -1,29 +1,24 @@
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { ICON_NAMES } from '@/utils/fontawesome';
 import { formatDateTimeShort } from '@/utils/date';
+import { convertToNTD } from '@/utils/settlement';
 import type { Expense, Member } from '@/types';
 
 interface ExpenseDetailProps {
   expense: Expense;
   members: Member[];
+  exchangeRate: number;
   onDelete: () => void;
 }
 
-// 固定匯率 NTD:JPY = 1:5
-const EXCHANGE_RATE = 5;
-
-const ExpenseDetail = ({ expense, members, onDelete }: ExpenseDetailProps) => {
+const ExpenseDetail = ({ expense, members, exchangeRate, onDelete }: ExpenseDetailProps) => {
   const getMemberName = (memberId: string): string => {
     const member = members.find((m) => m.id === memberId);
     return member?.name || '未知';
   };
 
-  const convertToNTD = (amount: number, currency: 'JPY' | 'NTD'): number => {
-    if (currency === 'NTD') return amount;
-    return Math.round(amount / EXCHANGE_RATE);
-  };
-
-  const totalNTD = convertToNTD(expense.amount, expense.currency);
+  const totalNTD = convertToNTD(expense.amount, expense.currency, exchangeRate);
+  const totalJPY = Math.round(totalNTD / exchangeRate);
   const perPersonAmount = Math.round(totalNTD / expense.splitIds.length);
 
   const handleDelete = () => {
@@ -33,7 +28,7 @@ const ExpenseDetail = ({ expense, members, onDelete }: ExpenseDetailProps) => {
   };
 
   return (
-    <div className="bg-cream-light p-6 rounded-t-[32px] max-h-[85vh] overflow-y-auto">
+    <div className="bg-cream-light pt-6 pb-32 rounded-t-[40px]">
       {/* Header */}
       <div className="text-center mb-6">
         <div className="inline-flex items-center justify-center w-16 h-16 rounded-full bg-accent/20 mb-3">
@@ -69,7 +64,7 @@ const ExpenseDetail = ({ expense, members, onDelete }: ExpenseDetailProps) => {
             {expense.currency === 'JPY' ? '¥' : 'NT$'}{expense.amount.toLocaleString()}
           </p>
           <p className="text-sm text-brown opacity-60">
-            = {expense.currency === 'JPY' ? `NT$${totalNTD.toLocaleString()}` : `¥${(totalNTD * EXCHANGE_RATE).toLocaleString()}`}
+            = {expense.currency === 'JPY' ? `NT$${totalNTD.toLocaleString()}` : `¥${totalJPY.toLocaleString()}`}
           </p>
         </div>
 
