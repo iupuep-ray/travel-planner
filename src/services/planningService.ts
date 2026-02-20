@@ -19,11 +19,18 @@ const COLLECTION_NAME = 'planning';
 
 export type PlanningInput = Omit<PlanningItem, 'id' | 'createdAt'>;
 
+const removeUndefinedFields = <T extends Record<string, unknown>>(obj: T): Partial<T> => {
+  return Object.fromEntries(
+    Object.entries(obj).filter(([, value]) => value !== undefined)
+  ) as Partial<T>;
+};
+
 // 新增準備事項
 export const addPlanningItem = async (data: PlanningInput): Promise<string> => {
   try {
+    const payload = removeUndefinedFields(data);
     const docRef = await addDoc(collection(db, COLLECTION_NAME), {
-      ...data,
+      ...payload,
       createdAt: Timestamp.now(),
       updatedAt: Timestamp.now(),
     });
@@ -38,8 +45,9 @@ export const addPlanningItem = async (data: PlanningInput): Promise<string> => {
 export const updatePlanningItem = async (id: string, data: Partial<PlanningInput>): Promise<void> => {
   try {
     const planningRef = doc(db, COLLECTION_NAME, id);
+    const payload = removeUndefinedFields(data as Record<string, unknown>);
     await updateDoc(planningRef, {
-      ...data,
+      ...payload,
       updatedAt: Timestamp.now(),
     });
   } catch (error) {
