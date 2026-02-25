@@ -164,7 +164,7 @@ const Expense = () => {
     <>
       {/* Header */}
       <div
-        className="text-white pb-6 pt-[calc(var(--app-safe-top)+1.5rem)] px-4 mb-4 rounded-b-[40px] relative z-10"
+        className="sticky top-0 text-white pb-6 pt-[calc(var(--app-safe-top)+1.5rem)] px-4 mb-4 rounded-b-[40px] relative z-30"
         style={{ backgroundColor: '#8B6F47' }}
       >
         <div className="flex items-center justify-center gap-3">
