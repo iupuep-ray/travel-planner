@@ -5,6 +5,7 @@ import { useMembers } from '@/hooks/useMembers';
 import BottomSheet from '@/components/BottomSheet';
 import MemberForm, { MemberFormData } from '@/components/MemberForm';
 import MemberCardSkeleton from '@/components/skeletons/MemberCardSkeleton';
+import { getDefaultAvatar } from '@/utils/avatar';
 import type { Member } from '@/types';
 
 const Members = () => {
@@ -117,7 +118,11 @@ const Members = () => {
                           className="w-full h-full rounded-full object-cover"
                         />
                       ) : (
-                        member.name.charAt(0)
+                        <img
+                          src={getDefaultAvatar(member.id || member.email || member.name)}
+                          alt={`${member.name} 預設頭像`}
+                          className="w-full h-full rounded-full object-cover"
+                        />
                       )}
                     </div>
 

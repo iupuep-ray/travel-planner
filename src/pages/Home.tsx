@@ -1,5 +1,4 @@
 import { useState, useMemo, useEffect } from 'react';
-import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import DatePicker from '@/components/DatePicker';
 import ScheduleCard from '@/components/ScheduleCard';
 import BottomSheet from '@/components/BottomSheet';
@@ -19,6 +18,14 @@ import {
 } from '@/services/weatherService';
 
 const Home = () => {
+  const BASE_URL = import.meta.env.BASE_URL;
+  const getImagePath = (path: string) => `${BASE_URL}${path.startsWith('/') ? path.slice(1) : path}`;
+  const WEATHER_IMAGE_MAP: Record<string, string> = {
+    [ICON_NAMES.SUN]: getImagePath('/newpic/weather_hare.png'),
+    [ICON_NAMES.CLOUD_SUN]: getImagePath('/newpic/weather_cloudy.png'),
+    [ICON_NAMES.CLOUD_RAIN]: getImagePath('/newpic/weather_rain.png'),
+  };
+
   const { schedules, loading } = useSchedules();
   const [selectedSchedule, setSelectedSchedule] = useState<Schedule | null>(null);
   const [weather, setWeather] = useState<HomeWeatherInfo>({
@@ -28,6 +35,7 @@ const Home = () => {
     location: '大阪',
   });
   const [weatherLoading, setWeatherLoading] = useState(false);
+  const weatherImage = WEATHER_IMAGE_MAP[weather.icon] || WEATHER_IMAGE_MAP[ICON_NAMES.CLOUD_SUN];
 
   // 計算旅遊日期範圍
   const travelDates = useMemo(() => {
@@ -78,6 +86,10 @@ const Home = () => {
   const [selectedDate, setSelectedDate] = useState<Date>(
     travelDates.length > 0 ? travelDates[0] : new Date()
   );
+  // 預覽用：若目前判斷為多雲，依日期輪替不同天氣圖，方便視覺確認
+  const previewWeatherImage = weather.icon === ICON_NAMES.CLOUD_SUN
+    ? [WEATHER_IMAGE_MAP[ICON_NAMES.SUN], WEATHER_IMAGE_MAP[ICON_NAMES.CLOUD_SUN], WEATHER_IMAGE_MAP[ICON_NAMES.CLOUD_RAIN]][selectedDate.getDate() % 3]
+    : weatherImage;
 
   // 為特定日期篩選和排序行程
   const schedulesForDate = useMemo(() => {
@@ -241,9 +253,10 @@ const Home = () => {
       >
         {/* Weather Content */}
         <div className="flex items-center justify-center gap-3">
-          <FontAwesomeIcon
-            icon={['fas', weather.icon]}
-            className="text-5xl drop-shadow-lg"
+          <img
+            src={previewWeatherImage}
+            alt={weather.condition}
+            className="w-20 h-20 object-contain drop-shadow-lg"
           />
           <div>
             <p className="text-3xl font-bold drop-shadow-md">{weather.temp}</p>

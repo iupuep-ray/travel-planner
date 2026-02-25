@@ -9,7 +9,7 @@ export const LOCAL_IMAGES = {
   // 首頁裝飾圖片
   homepage: {
     // 天氣相關
-    weather: getImagePath('/pic/icon-weather.png'),
+    weather: getImagePath('/newpic/weather_cloudy.png'),
     // 裝飾元素
     leaves: getImagePath('/pic/icon-leaves.png'),
     plant1: getImagePath('/pic/icon-plant1.png'),

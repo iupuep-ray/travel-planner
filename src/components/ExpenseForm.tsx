@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { ICON_NAMES } from '@/utils/fontawesome';
+import { getDefaultAvatar } from '@/utils/avatar';
 import type { Member } from '@/types';
 
 interface ExpenseFormProps {
@@ -170,7 +171,11 @@ const ExpenseForm = ({ members, onSubmit, onCancel }: ExpenseFormProps) => {
                   {member.avatar ? (
                     <img src={member.avatar} alt={member.name} className="w-full h-full rounded-full object-cover" />
                   ) : (
-                    member.name.charAt(0)
+                    <img
+                      src={getDefaultAvatar(member.id || member.email || member.name)}
+                      alt={`${member.name} 預設頭像`}
+                      className="w-full h-full rounded-full object-cover"
+                    />
                   )}
                 </div>
                 <span className="flex-1 font-medium text-brown">{member.name}</span>

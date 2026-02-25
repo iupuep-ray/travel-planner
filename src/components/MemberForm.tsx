@@ -1,6 +1,7 @@
 import { useState, useRef } from 'react';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { ICON_NAMES } from '@/utils/fontawesome';
+import { DEFAULT_AVATAR_IMAGES, getDefaultAvatar } from '@/utils/avatar';
 import { uploadAvatar } from '@/services/storageService';
 import { useAuth } from '@/contexts/AuthContext';
 import AvatarCropper from './AvatarCropper';
@@ -18,14 +19,7 @@ export interface MemberFormData {
 }
 
 const MemberForm = ({ initialData, onSubmit, onCancel }: MemberFormProps) => {
-  // 預設頭像列表
-  const BASE_URL = import.meta.env.BASE_URL;
-  const getImagePath = (path: string) => `${BASE_URL}${path.startsWith('/') ? path.slice(1) : path}`;
-  const DEFAULT_AVATARS = [
-    getImagePath('pic/defult-profile-pic1.png'),
-    getImagePath('pic/defult-profile-pic2.png'),
-    getImagePath('pic/defult-profile-pic3.png'),
-  ];
+  const DEFAULT_AVATARS = DEFAULT_AVATAR_IMAGES;
   const { user } = useAuth();
   const [formData, setFormData] = useState<MemberFormData>(
     initialData || {
@@ -43,6 +37,7 @@ const MemberForm = ({ initialData, onSubmit, onCancel }: MemberFormProps) => {
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const isEditMode = !!initialData;
+  const fallbackAvatar = getDefaultAvatar(formData.email || formData.name || 'member');
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -168,7 +163,11 @@ const MemberForm = ({ initialData, onSubmit, onCancel }: MemberFormProps) => {
                   className="w-full h-full object-cover"
                 />
               ) : (
-                formData.name.charAt(0) || '?'
+                <img
+                  src={fallbackAvatar}
+                  alt="預設頭像"
+                  className="w-full h-full object-cover"
+                />
               )}
             </div>
 
