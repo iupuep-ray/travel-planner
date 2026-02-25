@@ -21,7 +21,7 @@ const MainLayout = () => {
           className="mx-auto md:max-w-lg"
           style={{
             backgroundColor: statusBarColor,
-            height: 'env(safe-area-inset-top)',
+            height: 'var(--app-safe-top)',
           }}
         />
       </div>

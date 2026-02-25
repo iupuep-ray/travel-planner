@@ -2,6 +2,20 @@
 @tailwind components;
 @tailwind utilities;
 
+:root {
+  --app-safe-top: 0px;
+}
+
+@media (display-mode: standalone) {
+  :root {
+    --app-safe-top: max(env(safe-area-inset-top), 44px);
+  }
+}
+
+html.is-standalone {
+  --app-safe-top: max(env(safe-area-inset-top), 44px);
+}
+
 /* 動森風格全域樣式（基於遊戲介面） */
 @layer base {
   body {
