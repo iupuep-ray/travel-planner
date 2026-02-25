@@ -4,6 +4,7 @@ import { ICON_NAMES } from '@/utils/fontawesome';
 import { usePlanning } from '@/hooks/usePlanning';
 import { useMembers } from '@/hooks/useMembers';
 import { useSchedules } from '@/hooks/useSchedules';
+import { getDefaultAvatar } from '@/utils/avatar';
 import BottomSheet from '@/components/BottomSheet';
 import PlanningForm, { PlanningFormData } from '@/components/PlanningForm';
 import LoaderGrid from '@/components/ui/loader-grid';
@@ -31,10 +32,21 @@ const Planning = () => {
 
   const loading = planningLoading || membersLoading || schedulesLoading;
 
+  const getMemberById = (memberId: string) => members.find((m) => m.id === memberId);
+
   // 取得成員名稱
   const getMemberName = (memberId: string): string => {
-    const member = members.find((m) => m.id === memberId);
+    const member = getMemberById(memberId);
     return member?.name || '';
+  };
+
+  const getMemberDisplayName = (memberId: string): string => {
+    return getMemberById(memberId)?.name || getMemberName(memberId) || '成員';
+  };
+
+  const getMemberAvatar = (memberId: string): string => {
+    const member = getMemberById(memberId);
+    return member?.avatar || getDefaultAvatar(memberId || member?.name || 'member');
   };
 
   // 依類型篩選清單項目
@@ -254,14 +266,13 @@ const Planning = () => {
                               <div className="flex items-center gap-1 mt-1 flex-wrap">
                                 {item.assigneeIds.map((assigneeId) => (
                                   <div key={assigneeId} className="flex items-center gap-1">
-                                    <div
-                                      className="w-4 h-4 rounded-full flex items-center justify-center text-[10px] font-bold text-white"
-                                      style={{ backgroundColor: '#7AC5AD' }}
-                                    >
-                                      {getMemberName(assigneeId).charAt(0)}
-                                    </div>
+                                    <img
+                                      src={getMemberAvatar(assigneeId)}
+                                      alt={`${getMemberDisplayName(assigneeId)} 頭像`}
+                                      className="w-4 h-4 rounded-full object-cover"
+                                    />
                                     <span className="text-xs text-brown opacity-60">
-                                      {getMemberName(assigneeId)}
+                                      {getMemberDisplayName(assigneeId)}
                                     </span>
                                   </div>
                                 ))}
@@ -350,14 +361,13 @@ const Planning = () => {
                           <div className="flex items-center gap-1 flex-wrap">
                             {item.assigneeIds.map((assigneeId) => (
                               <div key={assigneeId} className="flex items-center gap-1">
-                                <div
-                                  className="w-4 h-4 rounded-full flex items-center justify-center text-[10px] font-bold text-white"
-                                  style={{ backgroundColor: '#7AC5AD' }}
-                                >
-                                  {getMemberName(assigneeId).charAt(0)}
-                                </div>
+                                <img
+                                  src={getMemberAvatar(assigneeId)}
+                                  alt={`${getMemberDisplayName(assigneeId)} 頭像`}
+                                  className="w-4 h-4 rounded-full object-cover"
+                                />
                                 <span className="text-xs text-brown opacity-60">
-                                  {getMemberName(assigneeId)}
+                                  {getMemberDisplayName(assigneeId)}
                                 </span>
                               </div>
                             ))}
