@@ -122,7 +122,10 @@ const Schedule = () => {
       {/* Tab Bar */}
       <div
         className="sticky top-0 z-20 shadow-soft rounded-b-[24px]"
-        style={{ backgroundColor: '#FDFAF3' }}
+        style={{
+          backgroundColor: '#FDFAF3',
+          paddingTop: 'env(safe-area-inset-top)',
+        }}
       >
         <div className="flex justify-around px-2 py-3">
           {tabs.map((tab) => (

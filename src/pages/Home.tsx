@@ -208,7 +208,7 @@ const Home = () => {
       <>
         {/* Weather Header Skeleton */}
         <div
-          className="py-8 px-4 mb-4 rounded-b-[40px] relative z-10"
+          className="pb-8 pt-[calc(env(safe-area-inset-top)+2rem)] px-4 mb-4 rounded-b-[40px] relative z-10"
           style={{ backgroundColor: '#78A153' }}
         >
           <div className="flex items-center justify-between">
@@ -248,7 +248,7 @@ const Home = () => {
     <>
       {/* Weather Header */}
       <div
-        className="text-white py-8 px-4 mb-4 rounded-b-[40px] relative z-10"
+        className="text-white pb-8 pt-[calc(env(safe-area-inset-top)+2rem)] px-4 mb-4 rounded-b-[40px] relative z-10"
         style={{ backgroundColor: '#78A153' }}
       >
         {/* Weather Content */}
