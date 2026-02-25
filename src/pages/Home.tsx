@@ -208,7 +208,7 @@ const Home = () => {
       <>
         {/* Weather Header Skeleton */}
         <div
-          className="sticky top-0 pb-8 pt-[calc(var(--app-safe-top)+2rem)] px-4 mb-4 rounded-b-[40px] relative z-30"
+          className="sticky top-0 pb-6 pt-[calc(var(--app-safe-top)+1rem)] px-4 mb-4 rounded-b-[40px] relative z-30"
           style={{ backgroundColor: '#78A153' }}
         >
           <div className="flex items-center justify-between">
@@ -248,7 +248,7 @@ const Home = () => {
     <>
       {/* Weather Header */}
       <div
-        className="sticky top-0 text-white pb-8 pt-[calc(var(--app-safe-top)+2rem)] px-4 mb-4 rounded-b-[40px] relative z-30"
+        className="sticky top-0 text-white pb-6 pt-[calc(var(--app-safe-top)+1rem)] px-4 mb-4 rounded-b-[40px] relative z-30"
         style={{ backgroundColor: '#78A153' }}
       >
         {/* Weather Content */}
