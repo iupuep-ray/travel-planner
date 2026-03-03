@@ -1,6 +1,7 @@
 import { useState, useMemo, useEffect } from 'react';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { ICON_NAMES } from '@/utils/fontawesome';
+import { getDefaultAvatar } from '@/utils/avatar';
 import { useExpenses } from '@/hooks/useExpenses';
 import { useMembers } from '@/hooks/useMembers';
 import BottomSheet from '@/components/BottomSheet';
@@ -27,12 +28,14 @@ const tabs: TabConfig[] = [
 ];
 
 const Expense = () => {
-  const { expenses, loading: expensesLoading, createExpense, removeExpense } = useExpenses();
+  const { expenses, loading: expensesLoading, createExpense, editExpense, removeExpense } = useExpenses();
   const { members, loading: membersLoading } = useMembers();
   const [activeTab, setActiveTab] = useState<ExpenseTab>('records');
   const [showAddForm, setShowAddForm] = useState(false);
+  const [editingExpense, setEditingExpense] = useState<ExpenseType | null>(null);
   const [selectedExpense, setSelectedExpense] = useState<ExpenseType | null>(null);
   const [settlementsMap, setSettlementsMap] = useState<Map<string, boolean>>(new Map());
+  const [selectedSettlementKeys, setSelectedSettlementKeys] = useState<Set<string>>(new Set());
   const [exchangeRate, setExchangeRate] = useState<number>(DEFAULT_JPY_TO_NTD_RATE);
   const [isExchangeRateFallback, setIsExchangeRateFallback] = useState(false);
   const [exchangeRateUpdatedAt, setExchangeRateUpdatedAt] = useState<string | null>(null);
@@ -91,10 +94,10 @@ const Expense = () => {
     return member?.name || '未知';
   };
 
-  // 計算每人應付金額
-  const calculatePerPersonAmount = (expense: ExpenseType): number => {
-    const totalNTD = convertToNTD(expense.amount, expense.currency, exchangeRate);
-    return Math.round(totalNTD / expense.splitIds.length);
+  const getMemberAvatar = (memberId: string): string => {
+    const member = members.find((m) => m.id === memberId);
+    if (!member) return getDefaultAvatar(memberId || 'member');
+    return member.avatar || getDefaultAvatar(member.id || member.email || member.name);
   };
 
   const calculatorNtd = useMemo(() => {
@@ -130,6 +133,7 @@ const Expense = () => {
         currency: data.currency,
         payerId: data.payerId,
         splitIds: data.splitIds,
+        splitAmounts: data.splitAmounts,
         isSettled: false,
         date: new Date().toISOString(),
       });
@@ -137,6 +141,25 @@ const Expense = () => {
     } catch (error) {
       console.error('新增費用失敗:', error);
       alert('新增費用失敗，請稍後再試');
+    }
+  };
+
+  const handleEditExpense = async (data: ExpenseFormData) => {
+    if (!editingExpense) return;
+    try {
+      await editExpense(editingExpense.id, {
+        description: data.description,
+        amount: data.amount,
+        currency: data.currency,
+        payerId: data.payerId,
+        splitIds: data.splitIds,
+        splitAmounts: data.splitAmounts,
+      });
+      setEditingExpense(null);
+      setSelectedExpense(null);
+    } catch (error) {
+      console.error('編輯費用失敗:', error);
+      alert('編輯費用失敗，請稍後再試');
     }
   };
 
@@ -148,6 +171,54 @@ const Expense = () => {
     } catch (error) {
       console.error('刪除費用失敗:', error);
       alert('刪除費用失敗，請稍後再試');
+    }
+  };
+
+  const openEditExpense = () => {
+    if (!selectedExpense) return;
+    setEditingExpense(selectedExpense);
+    setSelectedExpense(null);
+  };
+
+  const toggleSettlementSelection = (key: string) => {
+    setSelectedSettlementKeys((prev) => {
+      const next = new Set(prev);
+      if (next.has(key)) {
+        next.delete(key);
+      } else {
+        next.add(key);
+      }
+      return next;
+    });
+  };
+
+  const selectAllUnsettled = () => {
+    const unsettledKeys = settlementResults
+      .filter((result) => !result.isSettled)
+      .map((result) => `${result.from}-${result.to}`);
+    setSelectedSettlementKeys(new Set(unsettledKeys));
+  };
+
+  const clearSettlementSelection = () => {
+    setSelectedSettlementKeys(new Set());
+  };
+
+  const handleBatchSettlement = async () => {
+    if (selectedSettlementKeys.size === 0) {
+      alert('請先選擇要還款的項目');
+      return;
+    }
+
+    try {
+      const targetResults = settlementResults.filter((result) => {
+        const key = `${result.from}-${result.to}`;
+        return selectedSettlementKeys.has(key) && !result.isSettled;
+      });
+      await Promise.all(targetResults.map((result) => updateSettlementStatus(result.from, result.to, true)));
+      setSelectedSettlementKeys(new Set());
+    } catch (error) {
+      console.error('批次還款失敗:', error);
+      alert('批次還款失敗，請稍後再試');
     }
   };
 
@@ -237,7 +308,6 @@ const Expense = () => {
               ) : (
                 <div className="space-y-3">
                   {expenses.map((expense) => {
-                    const perPersonAmount = calculatePerPersonAmount(expense);
                     const totalNTD = convertToNTD(expense.amount, expense.currency, exchangeRate);
 
                     return (
@@ -281,10 +351,10 @@ const Expense = () => {
                           </div>
                           <div className="text-right">
                             <p className="text-xs text-brown opacity-60 mb-1">
-                              每人應付 ({expense.splitIds.length}人)
+                              分攤人數
                             </p>
                             <p className="text-lg font-bold text-primary">
-                              NT${perPersonAmount.toLocaleString()}
+                              {expense.splitIds.length} 人
                             </p>
                           </div>
                         </div>
@@ -372,6 +442,33 @@ const Expense = () => {
                 </div>
               ) : (
                 <div className="space-y-3">
+                  <div
+                    className="rounded-[20px] p-4 border border-brown/10"
+                    style={{ backgroundColor: '#FDFAF3' }}
+                  >
+                    <p className="text-sm font-bold text-brown mb-3">批次還款</p>
+                    <div className="flex gap-2">
+                      <button
+                        className="flex-1 py-2 rounded-[16px] bg-white border border-brown/10 text-brown text-sm font-bold"
+                        onClick={selectAllUnsettled}
+                      >
+                        全選未還款
+                      </button>
+                      <button
+                        className="flex-1 py-2 rounded-[16px] bg-white border border-brown/10 text-brown text-sm font-bold"
+                        onClick={clearSettlementSelection}
+                      >
+                        清除選取
+                      </button>
+                    </div>
+                    <button
+                      className="w-full mt-2 py-3 rounded-[18px] bg-primary text-white font-bold disabled:opacity-50"
+                      onClick={handleBatchSettlement}
+                      disabled={selectedSettlementKeys.size === 0}
+                    >
+                      批次標記已還款 ({selectedSettlementKeys.size})
+                    </button>
+                  </div>
                   {settlementResults.map((result, index) => (
                     <div
                       key={index}
@@ -380,6 +477,17 @@ const Expense = () => {
                       }`}
                       style={{ backgroundColor: '#F5EFE1' }}
                     >
+                      {!result.isSettled && (
+                        <label className="absolute top-3 left-3 flex items-center gap-1 text-xs text-brown">
+                          <input
+                            type="checkbox"
+                            checked={selectedSettlementKeys.has(`${result.from}-${result.to}`)}
+                            onChange={() => toggleSettlementSelection(`${result.from}-${result.to}`)}
+                            className="w-4 h-4 rounded accent-primary"
+                          />
+                          選取
+                        </label>
+                      )}
                       {/* Settled Badge */}
                       {result.isSettled && (
                         <div className="absolute top-3 right-3">
@@ -394,12 +502,11 @@ const Expense = () => {
                       )}
                       <div className="flex items-center justify-between mb-4">
                         <div className="flex items-center gap-3">
-                          <div
-                            className="w-10 h-10 rounded-full flex items-center justify-center font-bold text-white"
-                            style={{ backgroundColor: '#E89EA3' }}
-                          >
-                            {getMemberName(result.from).charAt(0)}
-                          </div>
+                          <img
+                            src={getMemberAvatar(result.from)}
+                            alt={`${getMemberName(result.from)} 頭像`}
+                            className="w-10 h-10 rounded-full object-cover"
+                          />
                           <div>
                             <p className="font-bold text-brown">{getMemberName(result.from)}</p>
                             <p className="text-xs text-brown opacity-60">應付款</p>
@@ -416,12 +523,11 @@ const Expense = () => {
                             <p className="font-bold text-brown text-right">{getMemberName(result.to)}</p>
                             <p className="text-xs text-brown opacity-60 text-right">應收款</p>
                           </div>
-                          <div
-                            className="w-10 h-10 rounded-full flex items-center justify-center font-bold text-white"
-                            style={{ backgroundColor: '#7AC5AD' }}
-                          >
-                            {getMemberName(result.to).charAt(0)}
-                          </div>
+                          <img
+                            src={getMemberAvatar(result.to)}
+                            alt={`${getMemberName(result.to)} 頭像`}
+                            className="w-10 h-10 rounded-full object-cover"
+                          />
                         </div>
                       </div>
 
@@ -481,7 +587,27 @@ const Expense = () => {
               expense={selectedExpense}
               members={members}
               exchangeRate={exchangeRate}
+              onEdit={openEditExpense}
               onDelete={handleDeleteExpense}
+            />
+          )}
+        </BottomSheet>
+
+        {/* Edit Expense Form Bottom Sheet */}
+        <BottomSheet isOpen={editingExpense !== null} onClose={() => setEditingExpense(null)}>
+          {editingExpense && (
+            <ExpenseForm
+              members={members}
+              initialData={{
+                description: editingExpense.description,
+                amount: editingExpense.amount,
+                currency: editingExpense.currency,
+                payerId: editingExpense.payerId,
+                splitIds: editingExpense.splitIds,
+                splitAmounts: editingExpense.splitAmounts || {},
+              }}
+              onSubmit={handleEditExpense}
+              onCancel={() => setEditingExpense(null)}
             />
           )}
         </BottomSheet>

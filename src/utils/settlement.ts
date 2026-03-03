@@ -12,6 +12,54 @@ export const convertToNTD = (
   return Math.round(amount * jpyToNtdRate);
 };
 
+const buildEqualShares = (total: number, memberIds: string[]): Record<string, number> => {
+  const shares: Record<string, number> = {};
+  if (memberIds.length === 0) return shares;
+
+  const base = Math.floor(total / memberIds.length);
+  let remainder = total - base * memberIds.length;
+
+  memberIds.forEach((memberId) => {
+    shares[memberId] = base + (remainder > 0 ? 1 : 0);
+    if (remainder > 0) remainder -= 1;
+  });
+
+  return shares;
+};
+
+const resolveSplitAmountsInNTD = (
+  expense: Expense,
+  jpyToNtdRate: number
+): Record<string, number> => {
+  const splitIds = expense.splitIds || [];
+  const totalNTD = convertToNTD(expense.amount, expense.currency, jpyToNtdRate);
+  if (splitIds.length === 0) return {};
+
+  const splitAmounts = expense.splitAmounts || {};
+  const hasAllMembersAmount = splitIds.every((memberId) => Number.isFinite(splitAmounts[memberId]));
+  const rawSplitSum = splitIds.reduce((sum, memberId) => sum + (splitAmounts[memberId] || 0), 0);
+  const isValidCustomSplit = hasAllMembersAmount && Math.abs(rawSplitSum - expense.amount) < 0.000001;
+
+  if (!isValidCustomSplit) {
+    return buildEqualShares(totalNTD, splitIds);
+  }
+
+  const convertedShares: Record<string, number> = {};
+  splitIds.forEach((memberId) => {
+    convertedShares[memberId] = convertToNTD(splitAmounts[memberId] || 0, expense.currency, jpyToNtdRate);
+  });
+
+  // 轉換後可能因四捨五入導致總和不等於總金額，將誤差補到付款人（或第一位分攤者）
+  const convertedSum = splitIds.reduce((sum, memberId) => sum + (convertedShares[memberId] || 0), 0);
+  const delta = totalNTD - convertedSum;
+  if (delta !== 0) {
+    const adjustTargetId = splitIds.includes(expense.payerId) ? expense.payerId : splitIds[0];
+    convertedShares[adjustTargetId] = (convertedShares[adjustTargetId] || 0) + delta;
+  }
+
+  return convertedShares;
+};
+
 // 計算清算結果（Netting 算法）
 export const calculateSettlement = (
   expenses: Expense[],
@@ -29,17 +77,26 @@ export const calculateSettlement = (
 
   // 計算每筆費用的影響
   unsettledExpenses.forEach((expense) => {
+    if (!expense.splitIds || expense.splitIds.length === 0) return;
+
     const totalNTD = convertToNTD(expense.amount, expense.currency, jpyToNtdRate);
-    const perPersonAmount = Math.round(totalNTD / expense.splitIds.length);
+    const splitAmountsNTD = resolveSplitAmountsInNTD(expense, jpyToNtdRate);
+    const payerShare = splitAmountsNTD[expense.payerId] || 0;
 
     // 付款人應收回的金額（總額 - 自己應付的）
-    const payerShouldReceive = totalNTD - perPersonAmount;
+    const payerShouldReceive = totalNTD - payerShare;
+    if (!Number.isFinite(balance[expense.payerId])) {
+      balance[expense.payerId] = 0;
+    }
     balance[expense.payerId] += payerShouldReceive;
 
     // 其他分攤者應付的金額
     expense.splitIds.forEach((memberId) => {
       if (memberId !== expense.payerId) {
-        balance[memberId] -= perPersonAmount;
+        if (!Number.isFinite(balance[memberId])) {
+          balance[memberId] = 0;
+        }
+        balance[memberId] -= splitAmountsNTD[memberId] || 0;
       }
     });
   });

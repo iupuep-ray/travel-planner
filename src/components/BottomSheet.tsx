@@ -1,4 +1,5 @@
 import { useEffect } from 'react';
+import { createPortal } from 'react-dom';
 
 interface BottomSheetProps {
   isOpen: boolean;
@@ -21,16 +22,16 @@ const BottomSheet = ({ isOpen, onClose, children }: BottomSheetProps) => {
 
   if (!isOpen) return null;
 
-  return (
+  const sheetContent = (
     <>
       {/* Backdrop */}
       <div
-        className="fixed inset-0 bg-black bg-opacity-40 z-40 transition-opacity"
+        className="fixed inset-0 bg-black bg-opacity-40 z-[90] transition-opacity"
         onClick={onClose}
       />
 
       {/* Bottom Sheet */}
-      <div className="fixed inset-x-0 bottom-0 z-50 animate-slide-up">
+      <div className="fixed inset-x-0 bottom-0 z-[100] animate-slide-up">
         <div className="bg-white rounded-t-[40px] shadow-soft max-h-[85vh] flex flex-col" style={{ boxShadow: '0 -4px 16px rgba(107, 86, 58, 0.15)' }}>
           {/* Handle */}
           <div className="flex justify-center py-3 flex-shrink-0">
@@ -45,6 +46,8 @@ const BottomSheet = ({ isOpen, onClose, children }: BottomSheetProps) => {
       </div>
     </>
   );
+
+  return createPortal(sheetContent, document.body);
 };
 
 export default BottomSheet;

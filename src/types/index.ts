@@ -104,6 +104,7 @@ export interface Expense {
   currency: 'JPY' | 'NTD';
   payerId: string;
   splitIds: string[]; // 分攤對象
+  splitAmounts?: Record<string, number>; // 各分攤對象金額（同幣別）
   isSettled: boolean;
   date: string;
   createdAt: string;

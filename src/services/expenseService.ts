@@ -75,6 +75,7 @@ export const subscribeToExpenses = (
           currency: data.currency,
           payerId: data.payerId,
           splitIds: data.splitIds,
+          splitAmounts: data.splitAmounts,
           isSettled: data.isSettled,
           date: data.date,
           createdAt: data.createdAt?.toDate().toISOString() || new Date().toISOString(),

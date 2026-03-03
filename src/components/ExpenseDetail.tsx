@@ -1,5 +1,6 @@
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { ICON_NAMES } from '@/utils/fontawesome';
+import { getDefaultAvatar } from '@/utils/avatar';
 import { formatDateTimeShort } from '@/utils/date';
 import { convertToNTD } from '@/utils/settlement';
 import type { Expense, Member } from '@/types';
@@ -8,18 +9,31 @@ interface ExpenseDetailProps {
   expense: Expense;
   members: Member[];
   exchangeRate: number;
+  onEdit: () => void;
   onDelete: () => void;
 }
 
-const ExpenseDetail = ({ expense, members, exchangeRate, onDelete }: ExpenseDetailProps) => {
+const ExpenseDetail = ({ expense, members, exchangeRate, onEdit, onDelete }: ExpenseDetailProps) => {
   const getMemberName = (memberId: string): string => {
     const member = members.find((m) => m.id === memberId);
     return member?.name || '未知';
   };
 
+  const getMemberAvatar = (memberId: string): string => {
+    const member = members.find((m) => m.id === memberId);
+    if (!member) return getDefaultAvatar(memberId || 'member');
+    return member.avatar || getDefaultAvatar(member.id || member.email || member.name);
+  };
+
+  const getMemberSplitAmount = (memberId: string): number => {
+    const customAmount = expense.splitAmounts?.[memberId];
+    if (Number.isFinite(customAmount)) return customAmount as number;
+    return Math.round(expense.amount / expense.splitIds.length);
+  };
+
   const totalNTD = convertToNTD(expense.amount, expense.currency, exchangeRate);
   const totalJPY = Math.round(totalNTD / exchangeRate);
-  const perPersonAmount = Math.round(totalNTD / expense.splitIds.length);
+  const hasCustomSplit = !!expense.splitAmounts && Object.keys(expense.splitAmounts).length > 0;
 
   const handleDelete = () => {
     if (confirm(`確定要刪除「${expense.description}」這筆費用嗎？`)) {
@@ -53,6 +67,24 @@ const ExpenseDetail = ({ expense, members, exchangeRate, onDelete }: ExpenseDeta
         </div>
       )}
 
+      {/* Edit & Delete Buttons */}
+      <div className="flex gap-3 mb-4">
+        <button
+          onClick={onEdit}
+          className="flex-1 py-3 px-4 rounded-[24px] bg-accent text-white font-bold transition-transform active:scale-95 flex items-center justify-center gap-2"
+        >
+          <FontAwesomeIcon icon={['fas', ICON_NAMES.EDIT]} />
+          編輯
+        </button>
+        <button
+          onClick={handleDelete}
+          className="flex-1 py-3 px-4 rounded-[24px] bg-red-500 text-white font-bold transition-transform active:scale-95 flex items-center justify-center gap-2"
+        >
+          <FontAwesomeIcon icon={['fas', ICON_NAMES.DELETE]} />
+          刪除
+        </button>
+      </div>
+
       {/* Amount Card */}
       <div
         className="rounded-[24px] shadow-soft p-5 mb-4"
@@ -70,10 +102,10 @@ const ExpenseDetail = ({ expense, members, exchangeRate, onDelete }: ExpenseDeta
 
         <div className="border-t border-brown/10 pt-4 text-center">
           <p className="text-sm text-brown opacity-60 mb-2">
-            每人應付 ({expense.splitIds.length}人)
+            分攤人數 ({expense.splitIds.length}人)
           </p>
           <p className="text-2xl font-bold text-primary">
-            NT${perPersonAmount.toLocaleString()}
+            {hasCustomSplit ? '已自訂分攤金額' : '平均分攤'}
           </p>
         </div>
       </div>
@@ -85,12 +117,11 @@ const ExpenseDetail = ({ expense, members, exchangeRate, onDelete }: ExpenseDeta
       >
         <p className="text-sm font-bold text-brown mb-2">代墊者</p>
         <div className="flex items-center gap-3">
-          <div
-            className="w-10 h-10 rounded-full flex items-center justify-center font-bold text-white"
-            style={{ backgroundColor: '#7AC5AD' }}
-          >
-            {getMemberName(expense.payerId).charAt(0)}
-          </div>
+          <img
+            src={getMemberAvatar(expense.payerId)}
+            alt={`${getMemberName(expense.payerId)} 頭像`}
+            className="w-10 h-10 rounded-full object-cover"
+          />
           <p className="font-bold text-brown">{getMemberName(expense.payerId)}</p>
         </div>
       </div>
@@ -107,26 +138,19 @@ const ExpenseDetail = ({ expense, members, exchangeRate, onDelete }: ExpenseDeta
               key={memberId}
               className="inline-flex items-center gap-2 px-3 py-2 rounded-full bg-white"
             >
-              <div
-                className="w-6 h-6 rounded-full flex items-center justify-center text-xs font-bold text-white"
-                style={{ backgroundColor: '#E89EA3' }}
-              >
-                {getMemberName(memberId).charAt(0)}
-              </div>
+              <img
+                src={getMemberAvatar(memberId)}
+                alt={`${getMemberName(memberId)} 頭像`}
+                className="w-6 h-6 rounded-full object-cover"
+              />
               <span className="text-sm text-brown">{getMemberName(memberId)}</span>
+              <span className="text-xs text-brown opacity-70">
+                {expense.currency === 'JPY' ? '¥' : 'NT$'}{getMemberSplitAmount(memberId).toLocaleString()}
+              </span>
             </div>
           ))}
         </div>
       </div>
-
-      {/* Delete Button */}
-      <button
-        onClick={handleDelete}
-        className="w-full py-4 rounded-[24px] bg-red-500 text-white font-bold transition-transform active:scale-95 flex items-center justify-center gap-2"
-      >
-        <FontAwesomeIcon icon={['fas', ICON_NAMES.DELETE]} />
-        刪除此筆費用
-      </button>
     </div>
   );
 };
