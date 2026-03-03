@@ -13,7 +13,7 @@ import { calculateSettlement, convertToNTD, DEFAULT_JPY_TO_NTD_RATE } from '@/ut
 import { subscribeToSettlements, updateSettlementStatus } from '@/services/settlementService';
 import type { Expense as ExpenseType } from '@/types';
 
-type ExpenseTab = 'records' | 'calculator' | 'settlement';
+type ExpenseTab = 'records' | 'calculator' | 'total' | 'settlement';
 
 interface TabConfig {
   key: ExpenseTab;
@@ -23,7 +23,8 @@ interface TabConfig {
 
 const tabs: TabConfig[] = [
   { key: 'records', label: '記帳', icon: ICON_NAMES.LIST },
-  { key: 'calculator', label: '匯率計算機', icon: ICON_NAMES.CALCULATOR },
+  { key: 'calculator', label: '匯率\n計算機', icon: ICON_NAMES.CALCULATOR },
+  { key: 'total', label: '總花費', icon: ICON_NAMES.MONEY },
   { key: 'settlement', label: '清算', icon: ICON_NAMES.CHECK },
 ];
 
@@ -87,6 +88,59 @@ const Expense = () => {
       };
     });
   }, [expenses, members, settlementsMap, exchangeRate]);
+
+  const memberSpendingSummary = useMemo(() => {
+    const createEqualSplit = (memberIds: string[], total: number): Record<string, number> => {
+      const result: Record<string, number> = {};
+      if (memberIds.length === 0) return result;
+
+      const base = Math.floor(total / memberIds.length);
+      let remainder = total - base * memberIds.length;
+      memberIds.forEach((memberId) => {
+        result[memberId] = base + (remainder > 0 ? 1 : 0);
+        if (remainder > 0) remainder -= 1;
+      });
+      return result;
+    };
+
+    const summaryMap = new Map<string, number>();
+    members.forEach((member) => summaryMap.set(member.id, 0));
+
+    expenses.forEach((expense) => {
+      const splitIds = expense.splitIds || [];
+      if (splitIds.length === 0) return;
+
+      const splitAmounts = expense.splitAmounts || {};
+      const hasAllSplitAmounts = splitIds.every((memberId) => Number.isFinite(splitAmounts[memberId]));
+      const splitTotal = splitIds.reduce((sum, memberId) => sum + (splitAmounts[memberId] || 0), 0);
+      const isCustomSplitValid = hasAllSplitAmounts && Math.abs(splitTotal - expense.amount) < 0.000001;
+      const rawSplitMap = isCustomSplitValid
+        ? splitIds.reduce<Record<string, number>>((acc, memberId) => {
+          acc[memberId] = splitAmounts[memberId] || 0;
+          return acc;
+        }, {})
+        : createEqualSplit(splitIds, expense.amount);
+
+      splitIds.forEach((memberId) => {
+        const shareNTD = convertToNTD(rawSplitMap[memberId] || 0, expense.currency, exchangeRate);
+        summaryMap.set(memberId, (summaryMap.get(memberId) || 0) + shareNTD);
+      });
+    });
+
+    return members
+      .map((member) => ({
+        memberId: member.id,
+        memberName: member.name,
+        memberAvatar: member.avatar || getDefaultAvatar(member.id || member.email || member.name),
+        totalNTD: summaryMap.get(member.id) || 0,
+      }))
+      .sort((a, b) => b.totalNTD - a.totalNTD);
+  }, [expenses, members, exchangeRate]);
+
+  const totalTripSpendingNTD = useMemo(
+    () => memberSpendingSummary.reduce((sum, item) => sum + item.totalNTD, 0),
+    [memberSpendingSummary]
+  );
 
   // 取得成員名稱
   const getMemberName = (memberId: string): string => {
@@ -283,7 +337,7 @@ const Expense = () => {
                 }`}
               >
                 <FontAwesomeIcon icon={['fas', tab.icon]} />
-                {tab.label}
+                <span className="whitespace-pre-line leading-tight text-center">{tab.label}</span>
               </button>
             ))}
           </div>
@@ -431,6 +485,45 @@ const Expense = () => {
                   ⌫
                 </button>
               </div>
+            </div>
+          ) : activeTab === 'total' ? (
+            <div className="space-y-3">
+              <div
+                className="rounded-[24px] shadow-soft p-5"
+                style={{ backgroundColor: '#F5EFE1' }}
+              >
+                <p className="text-sm text-brown opacity-70 mb-1">本行程總花費（依分攤）</p>
+                <p className="text-3xl font-bold text-accent">NT${totalTripSpendingNTD.toLocaleString()}</p>
+                <p className="text-xs text-brown opacity-60 mt-1">
+                  約 ¥{Math.round(totalTripSpendingNTD / exchangeRate).toLocaleString()}
+                </p>
+              </div>
+
+              {memberSpendingSummary.map((item) => (
+                <div
+                  key={item.memberId}
+                  className="rounded-[20px] shadow-soft p-4 flex items-center justify-between"
+                  style={{ backgroundColor: '#F5EFE1' }}
+                >
+                  <div className="flex items-center gap-3">
+                    <img
+                      src={item.memberAvatar}
+                      alt={`${item.memberName} 頭像`}
+                      className="w-11 h-11 rounded-full object-cover"
+                    />
+                    <div>
+                      <p className="font-bold text-brown">{item.memberName}</p>
+                      <p className="text-xs text-brown opacity-60">總花費</p>
+                    </div>
+                  </div>
+                  <div className="text-right">
+                    <p className="text-lg font-bold text-primary">NT${item.totalNTD.toLocaleString()}</p>
+                    <p className="text-xs text-brown opacity-60">
+                      約 ¥{Math.round(item.totalNTD / exchangeRate).toLocaleString()}
+                    </p>
+                  </div>
+                </div>
+              ))}
             </div>
           ) : (
             <div>
