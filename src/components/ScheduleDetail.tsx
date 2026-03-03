@@ -9,6 +9,23 @@ interface ScheduleDetailProps {
   onDelete?: () => void;
 }
 
+const parseAirportDisplay = (airport: string): { code: string; name: string } => {
+  const trimmed = (airport || '').trim();
+  if (!trimmed) return { code: '-', name: '' };
+
+  const parts = trimmed.split(/\s+/);
+  if (parts.length > 1 && /^[A-Za-z]{3,4}$/.test(parts[0])) {
+    return { code: parts[0].toUpperCase(), name: parts.slice(1).join(' ') };
+  }
+
+  const compactMatch = trimmed.match(/^([A-Za-z]{3,4})(.+)$/);
+  if (compactMatch) {
+    return { code: compactMatch[1].toUpperCase(), name: compactMatch[2].trim() };
+  }
+
+  return { code: trimmed, name: '' };
+};
+
 const ScheduleDetail = ({ schedule, onEdit, onDelete }: ScheduleDetailProps) => {
 
   const handleDelete = () => {
@@ -25,6 +42,8 @@ const ScheduleDetail = ({ schedule, onEdit, onDelete }: ScheduleDetailProps) => 
   };
 
   if (schedule.type === 'flight') {
+    const departureAirport = parseAirportDisplay(schedule.departure.airport);
+    const arrivalAirport = parseAirportDisplay(schedule.arrival.airport);
     return (
       <div className="space-y-4">
         <div className="text-center">
@@ -37,25 +56,35 @@ const ScheduleDetail = ({ schedule, onEdit, onDelete }: ScheduleDetailProps) => 
 
         <div className="card">
           <div className="mb-4">
-            <h3 className="text-sm font-medium text-primary mb-2">出發</h3>
-            <p className="font-medium text-primary-text">{schedule.departure.airport}</p>
-            <p className="text-sm text-primary-text opacity-70">
-              {formatDisplayDate(parseDate(schedule.departure.dateTime))} {formatTime(schedule.departure.dateTime)}
-            </p>
-            <p className="text-sm text-primary-text opacity-70">
-              {schedule.departure.terminal} · 登機門 {schedule.departure.gate}
-            </p>
+            <div>
+              <h3 className="text-sm font-medium text-primary mb-2">出發</h3>
+              <p className="font-bold text-primary-text leading-none">{departureAirport.code}</p>
+              {departureAirport.name && (
+                <p className="text-xs text-primary-text opacity-70 mt-1">{departureAirport.name}</p>
+              )}
+              <p className="text-sm text-primary-text opacity-70">
+                {formatDisplayDate(parseDate(schedule.departure.dateTime))} {formatTime(schedule.departure.dateTime)}
+              </p>
+              <p className="text-sm text-primary-text opacity-70">
+                {schedule.departure.terminal} · 登機門 {schedule.departure.gate}
+              </p>
+            </div>
           </div>
 
           <div className="border-t border-card-shadow pt-4">
-            <h3 className="text-sm font-medium text-primary mb-2">抵達</h3>
-            <p className="font-medium text-primary-text">{schedule.arrival.airport}</p>
-            <p className="text-sm text-primary-text opacity-70">
-              {formatDisplayDate(parseDate(schedule.arrival.dateTime))} {formatTime(schedule.arrival.dateTime)}
-            </p>
-            <p className="text-sm text-primary-text opacity-70">
-              {schedule.arrival.terminal} · 登機門 {schedule.arrival.gate}
-            </p>
+            <div>
+              <h3 className="text-sm font-medium text-primary mb-2">抵達</h3>
+              <p className="font-bold text-primary-text leading-none">{arrivalAirport.code}</p>
+              {arrivalAirport.name && (
+                <p className="text-xs text-primary-text opacity-70 mt-1">{arrivalAirport.name}</p>
+              )}
+              <p className="text-sm text-primary-text opacity-70">
+                {formatDisplayDate(parseDate(schedule.arrival.dateTime))} {formatTime(schedule.arrival.dateTime)}
+              </p>
+              <p className="text-sm text-primary-text opacity-70">
+                {schedule.arrival.terminal} · 登機門 {schedule.arrival.gate}
+              </p>
+            </div>
           </div>
 
           <div className="border-t border-card-shadow pt-4 mt-4">

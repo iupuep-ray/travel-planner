@@ -8,112 +8,111 @@ interface FlightCardProps {
   onClick: () => void;
 }
 
+const parseAirportDisplay = (airport: string): { code: string; name: string } => {
+  const trimmed = (airport || '').trim();
+  if (!trimmed) return { code: '-', name: '' };
+
+  const parts = trimmed.split(/\s+/);
+  if (parts.length > 1 && /^[A-Za-z]{3,4}$/.test(parts[0])) {
+    return { code: parts[0].toUpperCase(), name: parts.slice(1).join(' ') };
+  }
+
+  const compactMatch = trimmed.match(/^([A-Za-z]{3,4})(.+)$/);
+  if (compactMatch) {
+    return { code: compactMatch[1].toUpperCase(), name: compactMatch[2].trim() };
+  }
+
+  return { code: trimmed, name: '' };
+};
+
 const FlightCard = ({ flight, onClick }: FlightCardProps) => {
+  const departure = new Date(flight.departure.dateTime);
+  const arrival = new Date(flight.arrival.dateTime);
+  const departureAirport = parseAirportDisplay(flight.departure.airport);
+  const arrivalAirport = parseAirportDisplay(flight.arrival.airport);
+  const durationMinutes = Math.max(0, Math.round((arrival.getTime() - departure.getTime()) / 60000));
+  const durationHours = Math.floor(durationMinutes / 60);
+  const remainingMinutes = durationMinutes % 60;
+  const durationLabel = `${durationHours}h ${remainingMinutes}m`;
+  const depDateLabel = departure.toLocaleDateString('zh-TW', { month: '2-digit', day: '2-digit', weekday: 'short' });
+
   return (
     <div
       onClick={onClick}
-      className="mb-4 rounded-[24px] overflow-hidden shadow-soft-lg transition-transform active:scale-[0.98] cursor-pointer relative"
-      style={{
-        background: 'linear-gradient(135deg, #7AC5AD 0%, #5FA594 100%)',
-      }}
+      className="mb-4 rounded-[28px] overflow-hidden shadow-soft-lg transition-transform active:scale-[0.98] cursor-pointer border border-brown/10 relative"
+      style={{ backgroundColor: '#FFFDF8' }}
     >
-      {/* 背景裝飾 - 飛機圖示 */}
-      <div className="absolute top-4 right-4 opacity-10">
-        <FontAwesomeIcon
-          icon={['fas', ICON_NAMES.PLANE]}
-          className="text-white"
-          style={{ fontSize: '80px', transform: 'rotate(-15deg)' }}
-        />
-      </div>
-
-      {/* BOARDING PASS 標題 */}
-      <div className="px-6 pt-5 pb-3 relative z-10">
-        <div className="text-white text-center">
-          <div className="text-sm font-bold tracking-widest opacity-90">BOARDING PASS</div>
+      <div
+        className="px-5 py-4 text-white relative overflow-hidden"
+        style={{ background: 'linear-gradient(130deg, #3D6D8D 0%, #5FA594 55%, #85C8B2 100%)' }}
+      >
+        <div className="absolute -right-10 -top-10 w-28 h-28 rounded-full bg-white/15" />
+        <div className="absolute -left-10 -bottom-12 w-24 h-24 rounded-full bg-white/10" />
+        <div className="relative z-10 flex items-start justify-between">
+          <div>
+            <p className="text-[10px] tracking-[0.24em] font-bold opacity-90">BOARDING PASS</p>
+            <p className="text-sm font-bold mt-1">{flight.flightNumber}</p>
+          </div>
+          <div className="text-right">
+            <p className="text-[10px] opacity-85">DEP</p>
+            <p className="text-xs font-semibold">{depDateLabel}</p>
+          </div>
         </div>
       </div>
 
-      {/* 主要內容區域 - 白色卡片 */}
-      <div className="mx-4 mb-4 rounded-[20px] bg-white shadow-lg relative z-10">
-        <div className="px-5 py-4">
-          {/* 航班資訊 */}
-          <div className="grid grid-cols-2 gap-4 mb-4">
-            <div>
-              <div className="text-xs text-brown opacity-60 mb-1">FLIGHT</div>
-              <div className="text-xl font-bold text-primary">{flight.flightNumber}</div>
-            </div>
-            <div>
-              <div className="text-xs text-brown opacity-60 mb-1">DEPARTS</div>
-              <div className="text-sm font-bold text-brown">
-                {new Date(flight.departure.dateTime).toLocaleDateString('en-US', {
-                  weekday: 'short',
-                  month: 'short',
-                  day: '2-digit'
-                }).toUpperCase()}
-              </div>
-            </div>
+      <div className="px-5 pt-4 pb-3">
+        <div className="flex items-start justify-between mb-3">
+          <div>
+            <p className="text-[32px] leading-none font-black text-brown">{departureAirport.code}</p>
+            {departureAirport.name && (
+              <p className="text-xs text-brown/70 mt-1">{departureAirport.name}</p>
+            )}
+            <p className="text-sm text-brown/80">{formatTime(flight.departure.dateTime)}</p>
           </div>
-
-          {/* 出發抵達 */}
-          <div className="flex items-center justify-between mb-4">
-            <div className="text-center">
-              <div className="text-3xl font-bold text-primary mb-1">
-                {flight.departure.airport}
-              </div>
-              <div className="text-sm text-brown font-medium">
-                {formatTime(flight.departure.dateTime)}
-              </div>
-            </div>
-
-            <div className="px-3">
-              <FontAwesomeIcon
-                icon={['fas', ICON_NAMES.PLANE]}
-                className="text-xl text-brown opacity-30"
-                style={{ transform: 'rotate(0deg)' }}
-              />
-            </div>
-
-            <div className="text-center">
-              <div className="text-3xl font-bold text-primary mb-1">
-                {flight.arrival.airport}
-              </div>
-              <div className="text-sm text-brown font-medium">
-                {formatTime(flight.arrival.dateTime)}
-              </div>
-            </div>
+          <div className="text-center pt-1">
+            <p className="text-[10px] tracking-[0.12em] text-brown/55">FLIGHT TIME</p>
+            <p className="text-xs font-extrabold text-brown mt-0.5">
+              <FontAwesomeIcon icon={['fas', ICON_NAMES.PLANE]} className="text-[10px] mr-1 text-brown/60" />
+              {durationLabel}
+            </p>
           </div>
-
-          {/* 虛線分隔 */}
-          <div className="relative my-4">
-            <div className="absolute left-0 top-1/2 w-full h-px border-t-2 border-dashed border-brown/20"></div>
-            {/* 左右半圓形缺口效果 */}
-            <div className="absolute -left-5 top-1/2 -translate-y-1/2 w-6 h-6 rounded-full bg-primary overflow-hidden">
-              <div className="absolute left-0 top-0 w-3 h-6 bg-white"></div>
-            </div>
-            <div className="absolute -right-5 top-1/2 -translate-y-1/2 w-6 h-6 rounded-full bg-primary overflow-hidden">
-              <div className="absolute right-0 top-0 w-3 h-6 bg-white"></div>
-            </div>
+          <div className="text-right">
+            <p className="text-[32px] leading-none font-black text-brown">{arrivalAirport.code}</p>
+            {arrivalAirport.name && (
+              <p className="text-xs text-brown/70 mt-1">{arrivalAirport.name}</p>
+            )}
+            <p className="text-sm text-brown/80">{formatTime(flight.arrival.dateTime)}</p>
           </div>
+        </div>
 
-          {/* 底部資訊 */}
-          <div className="grid grid-cols-3 gap-3 pt-2">
-            <div>
-              <div className="text-xs text-brown opacity-60 mb-1">SEAT</div>
-              <div className="text-lg font-bold text-brown">{flight.seat || '-'}</div>
-            </div>
-            <div>
-              <div className="text-xs text-brown opacity-60 mb-1">BOARDING</div>
-              <div className="text-sm font-bold text-brown">
-                {flight.departure.gate ? `Gate ${flight.departure.gate}` : '-'}
-              </div>
-            </div>
-            <div>
-              <div className="text-xs text-brown opacity-60 mb-1">TERMINAL</div>
-              <div className="text-lg font-bold text-brown">
-                {flight.departure.terminal || '-'}
-              </div>
-            </div>
+        <div className="relative mb-4 px-1">
+          <div className="h-px border-t-2 border-dashed border-brown/30" />
+          <div className="absolute left-0 top-1/2 -translate-y-1/2 w-2.5 h-2.5 rounded-full bg-primary" />
+          <div className="absolute right-0 top-1/2 -translate-y-1/2 w-2.5 h-2.5 rounded-full bg-accent" />
+          <div className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 bg-[#FFFDF8] px-2 py-[1px] rounded-full">
+            <FontAwesomeIcon icon={['fas', ICON_NAMES.PLANE]} className="text-[10px] text-brown/60" />
           </div>
+        </div>
+
+        <div className="h-px bg-brown/10 mb-3" />
+
+        <div className="flex items-center justify-between text-sm text-brown">
+          <span className="font-semibold">Seat {flight.seat || '-'}</span>
+          <span className="text-brown/40">|</span>
+          <span className="font-semibold">Gate {flight.departure.gate || '-'}</span>
+          <span className="text-brown/40">|</span>
+          <span className="font-semibold">Terminal {flight.departure.terminal || '-'}</span>
+        </div>
+      </div>
+
+      <div className="relative px-5 pb-4 pt-1">
+        <div className="absolute left-0 top-1 w-4 h-4 rounded-full bg-[#E8DCC8] -translate-x-1/2" />
+        <div className="absolute right-0 top-1 w-4 h-4 rounded-full bg-[#E8DCC8] translate-x-1/2" />
+        <div className="h-px border-t-2 border-dashed border-brown/20 mb-2" />
+        <div className="flex items-center justify-between text-[10px] text-brown/60 tracking-[0.12em]">
+          <span>E-TICKET</span>
+          <span>BOARDING GROUP A</span>
+          <span>ZONE 1</span>
         </div>
       </div>
     </div>
