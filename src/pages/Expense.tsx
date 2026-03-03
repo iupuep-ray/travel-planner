@@ -304,33 +304,6 @@ const Expense = () => {
                 </div>
               ) : (
                 <div className="space-y-3">
-                  <div
-                    className="rounded-[20px] p-4 border border-brown/10"
-                    style={{ backgroundColor: '#FDFAF3' }}
-                  >
-                    <p className="text-sm font-bold text-brown mb-3">批次還款（以記帳明細為單位）</p>
-                    <div className="flex gap-2">
-                      <button
-                        className="flex-1 py-2 rounded-[16px] bg-white border border-brown/10 text-brown text-sm font-bold"
-                        onClick={selectAllUnsettledExpenses}
-                      >
-                        全選未還款
-                      </button>
-                      <button
-                        className="flex-1 py-2 rounded-[16px] bg-white border border-brown/10 text-brown text-sm font-bold"
-                        onClick={clearExpenseSelection}
-                      >
-                        清除選取
-                      </button>
-                    </div>
-                    <button
-                      className="w-full mt-2 py-3 rounded-[18px] bg-primary text-white font-bold disabled:opacity-50"
-                      onClick={handleBatchSettleExpenses}
-                      disabled={selectedExpenseIds.size === 0}
-                    >
-                      批次標記已還款 ({selectedExpenseIds.size})
-                    </button>
-                  </div>
                   {expenses.map((expense) => {
                     const totalNTD = convertToNTD(expense.amount, expense.currency, exchangeRate);
 
@@ -341,18 +314,6 @@ const Expense = () => {
                         className="rounded-[24px] shadow-soft p-4 transition-transform active:scale-[0.98] cursor-pointer relative overflow-hidden"
                         style={{ backgroundColor: '#F5EFE1' }}
                       >
-                        {!expense.isSettled && (
-                          <label className="absolute top-3 left-3 flex items-center gap-1 text-xs text-brown z-10">
-                            <input
-                              type="checkbox"
-                              checked={selectedExpenseIds.has(expense.id)}
-                              onClick={(e) => e.stopPropagation()}
-                              onChange={() => toggleExpenseSelection(expense.id)}
-                              className="w-4 h-4 rounded accent-primary"
-                            />
-                            選取
-                          </label>
-                        )}
                         {/* Settled Badge */}
                         {expense.isSettled && (
                           <div className="absolute top-3 right-3">
@@ -461,6 +422,56 @@ const Expense = () => {
             </div>
           ) : (
             <div>
+              <div
+                className="rounded-[20px] p-4 border border-brown/10 mb-3"
+                style={{ backgroundColor: '#FDFAF3' }}
+              >
+                <p className="text-sm font-bold text-brown mb-3">批次還款（以記帳明細為單位）</p>
+                <div className="flex gap-2 mb-2">
+                  <button
+                    className="flex-1 py-2 rounded-[16px] bg-white border border-brown/10 text-brown text-sm font-bold"
+                    onClick={selectAllUnsettledExpenses}
+                  >
+                    全選未還款
+                  </button>
+                  <button
+                    className="flex-1 py-2 rounded-[16px] bg-white border border-brown/10 text-brown text-sm font-bold"
+                    onClick={clearExpenseSelection}
+                  >
+                    清除選取
+                  </button>
+                </div>
+                <div className="space-y-2 mb-2 max-h-44 overflow-y-auto pr-1">
+                  {expenses.map((expense) => (
+                    <label
+                      key={expense.id}
+                      className={`flex items-center gap-2 px-3 py-2 rounded-[14px] border ${
+                        expense.isSettled ? 'bg-brown/5 border-brown/10 opacity-60' : 'bg-white border-brown/10'
+                      }`}
+                    >
+                      <input
+                        type="checkbox"
+                        checked={selectedExpenseIds.has(expense.id)}
+                        disabled={expense.isSettled}
+                        onChange={() => toggleExpenseSelection(expense.id)}
+                        className="w-4 h-4 rounded accent-primary"
+                      />
+                      <span className="text-sm text-brown flex-1 truncate">{expense.description}</span>
+                      <span className="text-xs text-brown opacity-70">
+                        {expense.currency === 'JPY' ? '¥' : 'NT$'}{expense.amount.toLocaleString()}
+                      </span>
+                    </label>
+                  ))}
+                </div>
+                <button
+                  className="w-full py-3 rounded-[18px] bg-primary text-white font-bold disabled:opacity-50"
+                  onClick={handleBatchSettleExpenses}
+                  disabled={selectedExpenseIds.size === 0}
+                >
+                  批次標記已還款 ({selectedExpenseIds.size})
+                </button>
+              </div>
+
               {/* Settlement Results */}
               {settlementResults.length === 0 ? (
                 <div

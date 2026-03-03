@@ -42,7 +42,7 @@ const ExpenseDetail = ({ expense, members, exchangeRate, onEdit, onDelete }: Exp
   };
 
   return (
-    <div className="bg-cream-light pt-6 pb-32 rounded-t-[40px]">
+    <div className="bg-cream-light pt-6 pb-8 rounded-t-[40px]">
       {/* Header */}
       <div className="text-center mb-6">
         <div className="inline-flex items-center justify-center w-16 h-16 rounded-full bg-accent/20 mb-3">

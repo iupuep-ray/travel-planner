@@ -39,7 +39,7 @@ const BottomSheet = ({ isOpen, onClose, children }: BottomSheetProps) => {
           </div>
 
           {/* Scrollable Content */}
-          <div className="px-6 pb-24 flex-1 min-h-0 overflow-y-auto">
+          <div className="px-6 pb-6 flex-1 min-h-0 overflow-y-auto">
             {children}
           </div>
         </div>
