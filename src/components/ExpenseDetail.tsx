@@ -9,11 +9,12 @@ interface ExpenseDetailProps {
   expense: Expense;
   members: Member[];
   exchangeRate: number;
+  onToggleSettled: () => void;
   onEdit: () => void;
   onDelete: () => void;
 }
 
-const ExpenseDetail = ({ expense, members, exchangeRate, onEdit, onDelete }: ExpenseDetailProps) => {
+const ExpenseDetail = ({ expense, members, exchangeRate, onToggleSettled, onEdit, onDelete }: ExpenseDetailProps) => {
   const getMemberName = (memberId: string): string => {
     const member = members.find((m) => m.id === memberId);
     return member?.name || '未知';
@@ -42,7 +43,7 @@ const ExpenseDetail = ({ expense, members, exchangeRate, onEdit, onDelete }: Exp
   };
 
   return (
-    <div className="bg-cream-light pt-6 pb-8 rounded-t-[40px]">
+    <div className="bg-cream-light pt-6 pb-4 rounded-t-[40px]">
       {/* Header */}
       <div className="text-center mb-6">
         <div className="inline-flex items-center justify-center w-16 h-16 rounded-full bg-accent/20 mb-3">
@@ -84,6 +85,17 @@ const ExpenseDetail = ({ expense, members, exchangeRate, onEdit, onDelete }: Exp
           刪除
         </button>
       </div>
+
+      {/* Settle Button */}
+      <button
+        onClick={onToggleSettled}
+        className={`w-full py-3 px-4 rounded-[24px] font-bold transition-transform active:scale-95 flex items-center justify-center gap-2 mb-4 ${
+          expense.isSettled ? 'bg-brown/20 text-brown' : 'bg-primary text-white'
+        }`}
+      >
+        <FontAwesomeIcon icon={['fas', ICON_NAMES.CHECK]} />
+        {expense.isSettled ? '取消已還款' : '標記此筆已還款'}
+      </button>
 
       {/* Amount Card */}
       <div

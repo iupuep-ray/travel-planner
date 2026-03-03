@@ -174,6 +174,18 @@ const Expense = () => {
     }
   };
 
+  const handleToggleSelectedExpenseSettled = async () => {
+    if (!selectedExpense) return;
+    try {
+      const nextSettled = !selectedExpense.isSettled;
+      await editExpense(selectedExpense.id, { isSettled: nextSettled });
+      setSelectedExpense((prev) => (prev ? { ...prev, isSettled: nextSettled } : prev));
+    } catch (error) {
+      console.error('更新單筆還款狀態失敗:', error);
+      alert('更新單筆還款狀態失敗，請稍後再試');
+    }
+  };
+
   const openEditExpense = () => {
     if (!selectedExpense) return;
     setEditingExpense(selectedExpense);
@@ -596,6 +608,7 @@ const Expense = () => {
               expense={selectedExpense}
               members={members}
               exchangeRate={exchangeRate}
+              onToggleSettled={handleToggleSelectedExpenseSettled}
               onEdit={openEditExpense}
               onDelete={handleDeleteExpense}
             />
