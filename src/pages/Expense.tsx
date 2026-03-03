@@ -35,7 +35,7 @@ const Expense = () => {
   const [editingExpense, setEditingExpense] = useState<ExpenseType | null>(null);
   const [selectedExpense, setSelectedExpense] = useState<ExpenseType | null>(null);
   const [settlementsMap, setSettlementsMap] = useState<Map<string, boolean>>(new Map());
-  const [selectedSettlementKeys, setSelectedSettlementKeys] = useState<Set<string>>(new Set());
+  const [selectedExpenseIds, setSelectedExpenseIds] = useState<Set<string>>(new Set());
   const [exchangeRate, setExchangeRate] = useState<number>(DEFAULT_JPY_TO_NTD_RATE);
   const [isExchangeRateFallback, setIsExchangeRateFallback] = useState(false);
   const [exchangeRateUpdatedAt, setExchangeRateUpdatedAt] = useState<string | null>(null);
@@ -180,42 +180,39 @@ const Expense = () => {
     setSelectedExpense(null);
   };
 
-  const toggleSettlementSelection = (key: string) => {
-    setSelectedSettlementKeys((prev) => {
+  const toggleExpenseSelection = (expenseId: string) => {
+    setSelectedExpenseIds((prev) => {
       const next = new Set(prev);
-      if (next.has(key)) {
-        next.delete(key);
+      if (next.has(expenseId)) {
+        next.delete(expenseId);
       } else {
-        next.add(key);
+        next.add(expenseId);
       }
       return next;
     });
   };
 
-  const selectAllUnsettled = () => {
-    const unsettledKeys = settlementResults
-      .filter((result) => !result.isSettled)
-      .map((result) => `${result.from}-${result.to}`);
-    setSelectedSettlementKeys(new Set(unsettledKeys));
+  const selectAllUnsettledExpenses = () => {
+    const unsettledExpenseIds = expenses
+      .filter((expense) => !expense.isSettled)
+      .map((expense) => expense.id);
+    setSelectedExpenseIds(new Set(unsettledExpenseIds));
   };
 
-  const clearSettlementSelection = () => {
-    setSelectedSettlementKeys(new Set());
+  const clearExpenseSelection = () => {
+    setSelectedExpenseIds(new Set());
   };
 
-  const handleBatchSettlement = async () => {
-    if (selectedSettlementKeys.size === 0) {
+  const handleBatchSettleExpenses = async () => {
+    if (selectedExpenseIds.size === 0) {
       alert('請先選擇要還款的項目');
       return;
     }
 
     try {
-      const targetResults = settlementResults.filter((result) => {
-        const key = `${result.from}-${result.to}`;
-        return selectedSettlementKeys.has(key) && !result.isSettled;
-      });
-      await Promise.all(targetResults.map((result) => updateSettlementStatus(result.from, result.to, true)));
-      setSelectedSettlementKeys(new Set());
+      const targetExpenses = expenses.filter((expense) => selectedExpenseIds.has(expense.id) && !expense.isSettled);
+      await Promise.all(targetExpenses.map((expense) => editExpense(expense.id, { isSettled: true })));
+      setSelectedExpenseIds(new Set());
     } catch (error) {
       console.error('批次還款失敗:', error);
       alert('批次還款失敗，請稍後再試');
@@ -307,6 +304,33 @@ const Expense = () => {
                 </div>
               ) : (
                 <div className="space-y-3">
+                  <div
+                    className="rounded-[20px] p-4 border border-brown/10"
+                    style={{ backgroundColor: '#FDFAF3' }}
+                  >
+                    <p className="text-sm font-bold text-brown mb-3">批次還款（以記帳明細為單位）</p>
+                    <div className="flex gap-2">
+                      <button
+                        className="flex-1 py-2 rounded-[16px] bg-white border border-brown/10 text-brown text-sm font-bold"
+                        onClick={selectAllUnsettledExpenses}
+                      >
+                        全選未還款
+                      </button>
+                      <button
+                        className="flex-1 py-2 rounded-[16px] bg-white border border-brown/10 text-brown text-sm font-bold"
+                        onClick={clearExpenseSelection}
+                      >
+                        清除選取
+                      </button>
+                    </div>
+                    <button
+                      className="w-full mt-2 py-3 rounded-[18px] bg-primary text-white font-bold disabled:opacity-50"
+                      onClick={handleBatchSettleExpenses}
+                      disabled={selectedExpenseIds.size === 0}
+                    >
+                      批次標記已還款 ({selectedExpenseIds.size})
+                    </button>
+                  </div>
                   {expenses.map((expense) => {
                     const totalNTD = convertToNTD(expense.amount, expense.currency, exchangeRate);
 
@@ -317,6 +341,18 @@ const Expense = () => {
                         className="rounded-[24px] shadow-soft p-4 transition-transform active:scale-[0.98] cursor-pointer relative overflow-hidden"
                         style={{ backgroundColor: '#F5EFE1' }}
                       >
+                        {!expense.isSettled && (
+                          <label className="absolute top-3 left-3 flex items-center gap-1 text-xs text-brown z-10">
+                            <input
+                              type="checkbox"
+                              checked={selectedExpenseIds.has(expense.id)}
+                              onClick={(e) => e.stopPropagation()}
+                              onChange={() => toggleExpenseSelection(expense.id)}
+                              className="w-4 h-4 rounded accent-primary"
+                            />
+                            選取
+                          </label>
+                        )}
                         {/* Settled Badge */}
                         {expense.isSettled && (
                           <div className="absolute top-3 right-3">
@@ -442,33 +478,6 @@ const Expense = () => {
                 </div>
               ) : (
                 <div className="space-y-3">
-                  <div
-                    className="rounded-[20px] p-4 border border-brown/10"
-                    style={{ backgroundColor: '#FDFAF3' }}
-                  >
-                    <p className="text-sm font-bold text-brown mb-3">批次還款</p>
-                    <div className="flex gap-2">
-                      <button
-                        className="flex-1 py-2 rounded-[16px] bg-white border border-brown/10 text-brown text-sm font-bold"
-                        onClick={selectAllUnsettled}
-                      >
-                        全選未還款
-                      </button>
-                      <button
-                        className="flex-1 py-2 rounded-[16px] bg-white border border-brown/10 text-brown text-sm font-bold"
-                        onClick={clearSettlementSelection}
-                      >
-                        清除選取
-                      </button>
-                    </div>
-                    <button
-                      className="w-full mt-2 py-3 rounded-[18px] bg-primary text-white font-bold disabled:opacity-50"
-                      onClick={handleBatchSettlement}
-                      disabled={selectedSettlementKeys.size === 0}
-                    >
-                      批次標記已還款 ({selectedSettlementKeys.size})
-                    </button>
-                  </div>
                   {settlementResults.map((result, index) => (
                     <div
                       key={index}
@@ -477,17 +486,6 @@ const Expense = () => {
                       }`}
                       style={{ backgroundColor: '#F5EFE1' }}
                     >
-                      {!result.isSettled && (
-                        <label className="absolute top-3 left-3 flex items-center gap-1 text-xs text-brown">
-                          <input
-                            type="checkbox"
-                            checked={selectedSettlementKeys.has(`${result.from}-${result.to}`)}
-                            onChange={() => toggleSettlementSelection(`${result.from}-${result.to}`)}
-                            className="w-4 h-4 rounded accent-primary"
-                          />
-                          選取
-                        </label>
-                      )}
                       {/* Settled Badge */}
                       {result.isSettled && (
                         <div className="absolute top-3 right-3">
