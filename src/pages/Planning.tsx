@@ -55,13 +55,11 @@ const Planning = () => {
     if (!notificationAt) return '';
     const date = new Date(notificationAt);
     if (Number.isNaN(date.getTime())) return '';
-    return date.toLocaleString('zh-TW', {
-      month: '2-digit',
-      day: '2-digit',
-      hour: '2-digit',
-      minute: '2-digit',
-      hour12: false,
-    });
+    const month = String(date.getMonth() + 1).padStart(2, '0');
+    const day = String(date.getDate()).padStart(2, '0');
+    const hour = String(date.getHours()).padStart(2, '0');
+    const minute = String(date.getMinutes()).padStart(2, '0');
+    return `${month}/${day} ${hour}:${minute}`;
   };
 
   // 依類型篩選清單項目
@@ -396,7 +394,7 @@ const Planning = () => {
                         {item.type === 'todo' && item.notificationEnabled && item.notificationAt && (
                           <span className="text-xs text-brown opacity-60 flex items-center gap-1">
                             <FontAwesomeIcon icon={['fas', ICON_NAMES.BELL]} />
-                            {`提醒時間 ${formatNotificationTime(item.notificationAt)}，未完成將每日同時分提醒`}
+                            {`提醒時間 ${formatNotificationTime(item.notificationAt)}`}
                           </span>
                         )}
                       </div>

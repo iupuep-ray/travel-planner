@@ -21,19 +21,6 @@ export interface PlanningFormData {
   relatedScheduleId?: string; // 關聯的購物行程 ID
 }
 
-const toLocalDateTimeInput = (iso?: string): string => {
-  if (!iso) return '';
-  const date = new Date(iso);
-  if (Number.isNaN(date.getTime())) return '';
-
-  const year = date.getFullYear();
-  const month = String(date.getMonth() + 1).padStart(2, '0');
-  const day = String(date.getDate()).padStart(2, '0');
-  const hour = String(date.getHours()).padStart(2, '0');
-  const minute = String(date.getMinutes()).padStart(2, '0');
-  return `${year}-${month}-${day}T${hour}:${minute}`;
-};
-
 const roundUpToQuarterHour = (date: Date): Date => {
   const rounded = new Date(date);
   const minutes = rounded.getMinutes();
@@ -45,13 +32,53 @@ const roundUpToQuarterHour = (date: Date): Date => {
   return rounded;
 };
 
-const normalizeNotificationDateTime = (localDateTime: string): string => {
-  const parsed = new Date(localDateTime);
-  if (Number.isNaN(parsed.getTime())) return '';
-  return roundUpToQuarterHour(parsed).toISOString();
+const toDateInputValue = (date: Date): string => {
+  const year = date.getFullYear();
+  const month = String(date.getMonth() + 1).padStart(2, '0');
+  const day = String(date.getDate()).padStart(2, '0');
+  return `${year}-${month}-${day}`;
 };
 
+const toTimeInputValue = (date: Date): string => {
+  const hour = String(date.getHours()).padStart(2, '0');
+  const minute = String(date.getMinutes()).padStart(2, '0');
+  return `${hour}:${minute}`;
+};
+
+const toLocalDateAndTime = (iso?: string): { date: string; time: string } => {
+  if (!iso) return { date: '', time: '' };
+  const parsed = new Date(iso);
+  if (Number.isNaN(parsed.getTime())) return { date: '', time: '' };
+
+  const normalized = roundUpToQuarterHour(parsed);
+  return {
+    date: toDateInputValue(normalized),
+    time: toTimeInputValue(normalized),
+  };
+};
+
+const toIsoFromLocalDateAndTime = (date: string, time: string): string => {
+  const parsed = new Date(`${date}T${time}`);
+  if (Number.isNaN(parsed.getTime())) return '';
+  return parsed.toISOString();
+};
+
+const buildQuarterHourOptions = () => {
+  const options: string[] = [];
+  for (let hour = 0; hour < 24; hour += 1) {
+    for (const minute of [0, 15, 30, 45]) {
+      const hh = String(hour).padStart(2, '0');
+      const mm = String(minute).padStart(2, '0');
+      options.push(`${hh}:${mm}`);
+    }
+  }
+  return options;
+};
+
+const QUARTER_HOUR_OPTIONS = buildQuarterHourOptions();
+
 const PlanningForm = ({ type, members, initialData, onSubmit, onCancel }: PlanningFormProps) => {
+  const initialNotification = toLocalDateAndTime(initialData?.notificationAt);
   const [formData, setFormData] = useState<PlanningFormData>(
     initialData || {
       content: '',
@@ -60,6 +87,8 @@ const PlanningForm = ({ type, members, initialData, onSubmit, onCancel }: Planni
       notificationAt: '',
     }
   );
+  const [notificationDate, setNotificationDate] = useState(initialNotification.date);
+  const [notificationTime, setNotificationTime] = useState(initialNotification.time);
 
   const isEditMode = !!initialData;
 
@@ -86,11 +115,11 @@ const PlanningForm = ({ type, members, initialData, onSubmit, onCancel }: Planni
     const normalizedData = { ...formData };
 
     if (type === 'todo' && normalizedData.notificationEnabled) {
-      if (!normalizedData.notificationAt) {
+      if (!notificationDate || !notificationTime) {
         alert('請設定推播通知時間');
         return;
       }
-      const normalizedNotificationAt = normalizeNotificationDateTime(normalizedData.notificationAt);
+      const normalizedNotificationAt = toIsoFromLocalDateAndTime(notificationDate, notificationTime);
       if (!normalizedNotificationAt) {
         alert('推播通知時間格式不正確');
         return;
@@ -197,6 +226,11 @@ const PlanningForm = ({ type, members, initialData, onSubmit, onCancel }: Planni
                         alert('未取得通知權限，無法啟用推播提醒');
                         return;
                       }
+                      if (!notificationDate || !notificationTime) {
+                        const nextQuarter = roundUpToQuarterHour(new Date());
+                        setNotificationDate(toDateInputValue(nextQuarter));
+                        setNotificationTime(toTimeInputValue(nextQuarter));
+                      }
                     }
                     setFormData((prev) => ({
                       ...prev,
@@ -209,22 +243,36 @@ const PlanningForm = ({ type, members, initialData, onSubmit, onCancel }: Planni
               </label>
 
               {formData.notificationEnabled && (
-                <div className="space-y-2">
+                <div className="space-y-3">
                   <label className="block text-sm text-brown/80 font-medium">
-                    推播時間點（可設定到月/日/時/分，分以 15 分鐘級距）
+                    推播時間點（時間固定每 15 分鐘：00 / 15 / 30 / 45）
                   </label>
-                  <input
-                    type="datetime-local"
-                    step={900}
-                    value={toLocalDateTimeInput(formData.notificationAt)}
-                    onChange={(e) =>
-                      setFormData((prev) => ({
-                        ...prev,
-                        notificationAt: e.target.value,
-                      }))
-                    }
-                    className="w-full px-4 py-3 rounded-[20px] bg-white border-2 border-cream focus:border-primary outline-none transition-colors text-brown"
-                  />
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                    <div>
+                      <label className="block text-xs text-brown/60 mb-1">日期</label>
+                      <input
+                        type="date"
+                        value={notificationDate}
+                        onChange={(e) => setNotificationDate(e.target.value)}
+                        className="w-full px-4 py-3 rounded-[16px] bg-white border-2 border-cream focus:border-primary outline-none transition-colors text-brown"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-xs text-brown/60 mb-1">時間</label>
+                      <select
+                        value={notificationTime}
+                        onChange={(e) => setNotificationTime(e.target.value)}
+                        className="w-full px-4 py-3 rounded-[16px] bg-white border-2 border-cream focus:border-primary outline-none transition-colors text-brown"
+                      >
+                        <option value="">請選擇時間</option>
+                        {QUARTER_HOUR_OPTIONS.map((timeOption) => (
+                          <option key={timeOption} value={timeOption}>
+                            {timeOption}
+                          </option>
+                        ))}
+                      </select>
+                    </div>
+                  </div>
                 </div>
               )}
             </div>
