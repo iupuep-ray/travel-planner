@@ -33,6 +33,7 @@ import {
   faMoneyBill,
   faEnvelope,
   faCamera,
+  faBell,
 } from '@fortawesome/free-solid-svg-icons';
 
 // Regular Icons
@@ -85,6 +86,7 @@ library.add(
   // Members
   faEnvelope,
   faCamera,
+  faBell,
 
   // Regular
   faCircleCheckRegular,
@@ -135,4 +137,5 @@ export const ICON_NAMES = {
   // Members
   EMAIL: 'envelope',
   CAMERA: 'camera',
+  BELL: 'bell',
 } as const;

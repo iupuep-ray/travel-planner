@@ -90,6 +90,9 @@ export const subscribeToPlanningItems = (
           content: data.content,
           isDone: data.isDone,
           assigneeIds: data.assigneeIds,
+          createdByAuthUid: data.createdByAuthUid,
+          notificationEnabled: data.notificationEnabled,
+          notificationAt: data.notificationAt,
           relatedScheduleId: data.relatedScheduleId,
           createdAt: data.createdAt?.toDate().toISOString() || new Date().toISOString(),
         };
@@ -121,6 +124,9 @@ export const subscribeToAllPlanningItems = (
           content: data.content,
           isDone: data.isDone,
           assigneeIds: data.assigneeIds,
+          createdByAuthUid: data.createdByAuthUid,
+          notificationEnabled: data.notificationEnabled,
+          notificationAt: data.notificationAt,
           relatedScheduleId: data.relatedScheduleId,
           createdAt: data.createdAt?.toDate().toISOString() || new Date().toISOString(),
         };

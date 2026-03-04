@@ -4,6 +4,7 @@ import { ICON_NAMES } from '@/utils/fontawesome';
 import { usePlanning } from '@/hooks/usePlanning';
 import { useMembers } from '@/hooks/useMembers';
 import { useSchedules } from '@/hooks/useSchedules';
+import { useAuth } from '@/contexts/AuthContext';
 import { getDefaultAvatar } from '@/utils/avatar';
 import BottomSheet from '@/components/BottomSheet';
 import PlanningForm, { PlanningFormData } from '@/components/PlanningForm';
@@ -27,6 +28,7 @@ const Planning = () => {
   const { items: planningItems, loading: planningLoading, createItem, editItem, removeItem, toggleItem } = usePlanning(activeTab);
   const { members, loading: membersLoading } = useMembers();
   const { schedules, loading: schedulesLoading } = useSchedules();
+  const { user } = useAuth();
   const [showAddForm, setShowAddForm] = useState(false);
   const [editingItem, setEditingItem] = useState<PlanningItem | null>(null);
 
@@ -47,6 +49,19 @@ const Planning = () => {
   const getMemberAvatar = (memberId: string): string => {
     const member = getMemberById(memberId);
     return member?.avatar || getDefaultAvatar(memberId || member?.name || 'member');
+  };
+
+  const formatNotificationTime = (notificationAt?: string): string => {
+    if (!notificationAt) return '';
+    const date = new Date(notificationAt);
+    if (Number.isNaN(date.getTime())) return '';
+    return date.toLocaleString('zh-TW', {
+      month: '2-digit',
+      day: '2-digit',
+      hour: '2-digit',
+      minute: '2-digit',
+      hour12: false,
+    });
   };
 
   // 依類型篩選清單項目
@@ -115,7 +130,10 @@ const Planning = () => {
         type: activeTab,
         content: data.content,
         isDone: false,
+        createdByAuthUid: user?.uid,
         assigneeIds: data.assigneeIds,
+        notificationEnabled: activeTab === 'todo' ? !!data.notificationEnabled : false,
+        notificationAt: activeTab === 'todo' ? data.notificationAt : undefined,
         relatedScheduleId: data.relatedScheduleId,
       });
       setShowAddForm(false);
@@ -132,6 +150,8 @@ const Planning = () => {
       await editItem(editingItem.id, {
         content: data.content,
         assigneeIds: data.assigneeIds,
+        notificationEnabled: editingItem.type === 'todo' ? !!data.notificationEnabled : false,
+        notificationAt: editingItem.type === 'todo' ? data.notificationAt : undefined,
         relatedScheduleId: data.relatedScheduleId,
       });
       setEditingItem(null);
@@ -373,6 +393,12 @@ const Planning = () => {
                             ))}
                           </div>
                         )}
+                        {item.type === 'todo' && item.notificationEnabled && item.notificationAt && (
+                          <span className="text-xs text-brown opacity-60 flex items-center gap-1">
+                            <FontAwesomeIcon icon={['fas', ICON_NAMES.BELL]} />
+                            {`提醒時間 ${formatNotificationTime(item.notificationAt)}，未完成將每日同時分提醒`}
+                          </span>
+                        )}
                       </div>
                     </div>
 
@@ -436,6 +462,8 @@ const Planning = () => {
               initialData={{
                 content: editingItem.content,
                 assigneeIds: editingItem.assigneeIds || [],
+                notificationEnabled: editingItem.notificationEnabled || false,
+                notificationAt: editingItem.notificationAt,
               }}
               onSubmit={handleEditItem}
               onCancel={() => setEditingItem(null)}

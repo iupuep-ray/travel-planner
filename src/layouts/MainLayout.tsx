@@ -1,8 +1,12 @@
 import { Outlet, useLocation } from 'react-router-dom';
 import BottomNav from '@/components/BottomNav';
+import { useAuth } from '@/contexts/AuthContext';
+import { useFcmRegistration } from '@/hooks/useFcmRegistration';
 
 const MainLayout = () => {
   const location = useLocation();
+  const { user } = useAuth();
+  useFcmRegistration(user?.uid || null);
 
   const statusBarColorByPath: Record<string, string> = {
     '/': '#78A153',
