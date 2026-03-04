@@ -30,6 +30,13 @@ const toSlotId = (date: Date): string => {
   return `${y}-${m}-${d}T${h}:${min}`;
 };
 
+const toExecutionSlot = (date: Date): Date => {
+  const slot = new Date(date);
+  const minute = slot.getMinutes();
+  slot.setMinutes(minute - (minute % 15), 0, 0);
+  return slot;
+};
+
 const shouldTriggerNow = (notificationAt: Date, now: Date): boolean => {
   if (now.getTime() < notificationAt.getTime()) return false;
   return now.getHours() === notificationAt.getHours() && now.getMinutes() === notificationAt.getMinutes();
@@ -109,10 +116,7 @@ const cleanupInvalidTokens = async (
 };
 
 export const runTodoReminderJob = async (db: Firestore, messaging: Messaging, logger: LoggerLike, now: Date = new Date()) => {
-  if (now.getMinutes() % 15 !== 0) {
-    logger.info('Skip: current minute is not on a 15-minute slot.', { minute: now.getMinutes() });
-    return;
-  }
+  const executionSlot = toExecutionSlot(now);
 
   const todoSnapshot = await db
     .collection('planning')
@@ -132,9 +136,9 @@ export const runTodoReminderJob = async (db: Firestore, messaging: Messaging, lo
 
     const notificationAt = new Date(todo.notificationAt);
     if (Number.isNaN(notificationAt.getTime())) continue;
-    if (!shouldTriggerNow(notificationAt, now)) continue;
+    if (!shouldTriggerNow(notificationAt, executionSlot)) continue;
 
-    const slotId = toSlotId(now);
+    const slotId = toSlotId(executionSlot);
     const acquired = await markDeliverySlot(db, todoDoc.id, slotId);
     if (!acquired) continue;
 
