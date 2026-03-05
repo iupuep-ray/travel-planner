@@ -117,6 +117,10 @@ const cleanupInvalidTokens = async (
 
 export const runTodoReminderJob = async (db: Firestore, messaging: Messaging, logger: LoggerLike, now: Date = new Date()) => {
   const executionSlot = toExecutionSlot(now);
+  logger.info('Todo reminder job started', {
+    nowIso: now.toISOString(),
+    executionSlotIso: executionSlot.toISOString(),
+  });
 
   const todoSnapshot = await db
     .collection('planning')
@@ -130,17 +134,35 @@ export const runTodoReminderJob = async (db: Firestore, messaging: Messaging, lo
     return;
   }
 
+  logger.info('Fetched pending todos', { count: todoSnapshot.size });
+
   for (const todoDoc of todoSnapshot.docs) {
     const todo = todoDoc.data() as PlanningTodoDoc;
-    if (!todo.notificationAt || !todo.content) continue;
+    if (!todo.notificationAt || !todo.content) {
+      logger.info('Skip todo: missing notificationAt/content', { todoId: todoDoc.id });
+      continue;
+    }
 
     const notificationAt = new Date(todo.notificationAt);
-    if (Number.isNaN(notificationAt.getTime())) continue;
-    if (!shouldTriggerNow(notificationAt, executionSlot)) continue;
+    if (Number.isNaN(notificationAt.getTime())) {
+      logger.info('Skip todo: invalid notificationAt', { todoId: todoDoc.id, notificationAt: todo.notificationAt });
+      continue;
+    }
+    if (!shouldTriggerNow(notificationAt, executionSlot)) {
+      logger.info('Skip todo: not matching execution slot', {
+        todoId: todoDoc.id,
+        notificationAt: todo.notificationAt,
+        executionSlotIso: executionSlot.toISOString(),
+      });
+      continue;
+    }
 
     const slotId = toSlotId(executionSlot);
     const acquired = await markDeliverySlot(db, todoDoc.id, slotId);
-    if (!acquired) continue;
+    if (!acquired) {
+      logger.info('Skip todo: delivery slot already exists', { todoId: todoDoc.id, slotId });
+      continue;
+    }
 
     const recipientUids = new Set<string>();
     if (todo.createdByAuthUid) {
@@ -153,7 +175,7 @@ export const runTodoReminderJob = async (db: Firestore, messaging: Messaging, lo
 
     const tokens = await fetchTokensByAuthUids(db, [...recipientUids]);
     if (tokens.length === 0) {
-      logger.info(`No tokens found for todo ${todoDoc.id}.`);
+      logger.info('No tokens found for todo', { todoId: todoDoc.id, recipientUidCount: recipientUids.size });
       continue;
     }
 
@@ -164,6 +186,20 @@ export const runTodoReminderJob = async (db: Firestore, messaging: Messaging, lo
         title: TODO_NOTIFICATION_TITLE,
         body,
       },
+      webpush: {
+        headers: {
+          Urgency: 'high',
+        },
+        notification: {
+          title: TODO_NOTIFICATION_TITLE,
+          body,
+          icon: '/travel-planner/pic/icon-192.png',
+          badge: '/travel-planner/pic/icon-192.png',
+        },
+        fcmOptions: {
+          link: 'https://ray-travel-japan.web.app/travel-planner/planning',
+        },
+      },
       data: {
         todoId: todoDoc.id,
         todoContent: todo.content,
@@ -172,9 +208,20 @@ export const runTodoReminderJob = async (db: Firestore, messaging: Messaging, lo
 
     await cleanupInvalidTokens(db, tokens, result.responses);
 
+    result.responses.forEach((response, index) => {
+      if (response.success) return;
+      logger.info('FCM send failure detail', {
+        todoId: todoDoc.id,
+        tokenIndex: index,
+        code: response.error?.code,
+        message: response.error?.message,
+      });
+    });
+
     logger.info('Todo reminder sent', {
       todoId: todoDoc.id,
       slotId,
+      tokenCount: tokens.length,
       successCount: result.successCount,
       failureCount: result.failureCount,
     });
