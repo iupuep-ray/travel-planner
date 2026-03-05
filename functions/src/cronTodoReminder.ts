@@ -53,8 +53,14 @@ const cliLogger = {
 };
 
 const run = async () => {
+  console.log('Todo reminder cron bootstrap', {
+    nowIso: new Date().toISOString(),
+    hasServiceAccount: Boolean(process.env.FIREBASE_SERVICE_ACCOUNT),
+    projectId: process.env.FIREBASE_PROJECT_ID || '',
+  });
   ensureAdminApp();
   await runTodoReminderJob(getFirestore(), getMessaging(), cliLogger);
+  console.log('Todo reminder cron finished');
 };
 
 run().catch((error) => {
