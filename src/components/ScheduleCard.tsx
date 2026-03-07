@@ -24,12 +24,19 @@ const getScheduleIcon = (type: Schedule['type']): IconName => {
 
 const getScheduleTime = (schedule: Schedule, showDate: boolean): string => {
   const formatFn = showDate ? formatDateTimeShort : formatTime;
+  const canFormatDateTime = (dateString?: string): boolean => {
+    if (!dateString || !dateString.trim()) return false;
+    return !Number.isNaN(new Date(dateString).getTime());
+  };
 
   if (schedule.type === 'flight') {
     return formatFn(schedule.departure.dateTime);
   }
   if (schedule.type === 'lodging') {
     return formatFn(schedule.checkIn);
+  }
+  if (!canFormatDateTime(schedule.startDateTime)) {
+    return '未排定';
   }
   return formatFn(schedule.startDateTime);
 };

@@ -9,8 +9,8 @@ import { formatLocalDateTime } from '@/utils/date';
 export interface ScheduleFormSubmitData {
   name: string;
   address: string;
-  startDateTime: string;
-  endDateTime: string;
+  startDateTime?: string;
+  endDateTime?: string;
   checkIn?: string;
   checkOut?: string;
   url?: string;
@@ -119,7 +119,9 @@ const ScheduleForm = ({ type, onSubmit, onCancel, editingSchedule }: ScheduleFor
           checkIn: formData.checkIn instanceof Date ? formatLocalDateTime(formData.checkIn) : '',
           checkOut: formData.checkOut instanceof Date ? formatLocalDateTime(formData.checkOut) : '',
           startDateTime: formData.startDateTime instanceof Date ? formatLocalDateTime(formData.startDateTime) : '',
-          endDateTime: formData.endDateTime instanceof Date ? formatLocalDateTime(formData.endDateTime) : '',
+          endDateTime: type === 'spot'
+            ? ''
+            : (formData.endDateTime instanceof Date ? formatLocalDateTime(formData.endDateTime) : ''),
         };
   
         // 如果有新上傳的圖片,先上傳圖片
@@ -241,6 +243,17 @@ const ScheduleForm = ({ type, onSubmit, onCancel, editingSchedule }: ScheduleFor
                 selected={formData.checkOut ?? null}
                 onChange={(date) => setFormData({ ...formData, checkOut: date })}
                 required
+              />
+            </div>
+          </>
+        ) : type === 'spot' ? (
+          <>
+            <div className="mb-4">
+              <DateTimePicker
+                label="開始時間（選填）"
+                selected={formData.startDateTime ?? null}
+                onChange={(date) => setFormData({ ...formData, startDateTime: date })}
+                required={false}
               />
             </div>
           </>

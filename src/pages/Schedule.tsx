@@ -12,6 +12,7 @@ import LoaderGrid from '@/components/ui/loader-grid';
 import type { Schedule as ScheduleType, ScheduleType as ScheduleTypeEnum, FlightSchedule } from '@/types';
 
 type ScheduleTab = 'flight' | 'lodging' | 'restaurant' | 'spot' | 'shopping';
+type SpotStatusTab = 'scheduled' | 'unscheduled';
 
 interface TabConfig {
   key: ScheduleTab;
@@ -32,8 +33,15 @@ const Schedule = () => {
   const [activeTab, setActiveTab] = useState<ScheduleTab>('flight');
   const [selectedSchedule, setSelectedSchedule] = useState<ScheduleType | null>(null);
   const [flightDirection, setFlightDirection] = useState<'outbound' | 'return'>('outbound');
+  const [spotStatusTab, setSpotStatusTab] = useState<SpotStatusTab>('scheduled');
   const [showAddForm, setShowAddForm] = useState(false);
   const [editingSchedule, setEditingSchedule] = useState<ScheduleType | null>(null);
+
+  const hasScheduledSpotTime = (schedule: ScheduleType): boolean => {
+    if (schedule.type !== 'spot') return false;
+    const hasStartTime = typeof schedule.startDateTime === 'string' && schedule.startDateTime.trim() !== '';
+    return hasStartTime;
+  };
 
   const handleAddSchedule = async (data: ScheduleFormSubmitData) => {
     try {
@@ -192,6 +200,32 @@ const Schedule = () => {
           </div>
         )}
 
+        {/* 景點專屬：已排定/未排定切換 */}
+        {activeTab === 'spot' && (
+          <div className="flex gap-2 mb-4">
+            <button
+              onClick={() => setSpotStatusTab('scheduled')}
+              className={`flex-1 py-3 px-4 rounded-[20px] font-bold text-sm transition-all ${
+                spotStatusTab === 'scheduled'
+                  ? 'bg-primary text-white shadow-soft'
+                  : 'bg-cream text-brown'
+              }`}
+            >
+              已排定
+            </button>
+            <button
+              onClick={() => setSpotStatusTab('unscheduled')}
+              className={`flex-1 py-3 px-4 rounded-[20px] font-bold text-sm transition-all ${
+                spotStatusTab === 'unscheduled'
+                  ? 'bg-primary text-white shadow-soft'
+                  : 'bg-cream text-brown'
+              }`}
+            >
+              未排定
+            </button>
+          </div>
+        )}
+
         {(() => {
           // 依類型篩選行程
           let filteredSchedules = schedules.filter((s) => s.type === activeTab);
@@ -211,7 +245,20 @@ const Schedule = () => {
             }
           }
 
+          if (activeTab === 'spot') {
+            filteredSchedules = filteredSchedules.filter((schedule) => {
+              const isScheduledSpot = hasScheduledSpotTime(schedule);
+              return spotStatusTab === 'scheduled' ? isScheduledSpot : !isScheduledSpot;
+            });
+          }
+
           if (filteredSchedules.length === 0) {
+            const emptyLabel = activeTab === 'flight'
+              ? (flightDirection === 'outbound' ? '去程' : '回程')
+              : activeTab === 'spot'
+                ? (spotStatusTab === 'scheduled' ? '已排定景點' : '未排定景點')
+                : tabs.find((t) => t.key === activeTab)?.label;
+
             return (
               <div className="text-center py-12">
                 <div className="mb-4">
@@ -221,7 +268,7 @@ const Schedule = () => {
                   />
                 </div>
                 <p className="text-brown opacity-60 mb-2">
-                  尚無{activeTab === 'flight' ? (flightDirection === 'outbound' ? '去程' : '回程') : tabs.find((t) => t.key === activeTab)?.label}行程
+                  尚無{emptyLabel}行程
                 </p>
                 {activeTab !== 'flight' && (
                   <p className="text-brown opacity-40 text-sm">點擊下方按鈕新增行程</p>

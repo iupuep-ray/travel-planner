@@ -26,6 +26,11 @@ const parseAirportDisplay = (airport: string): { code: string; name: string } =>
   return { code: trimmed, name: '' };
 };
 
+const isValidDateTimeString = (value?: string): boolean => {
+  if (!value || !value.trim()) return false;
+  return !Number.isNaN(new Date(value).getTime());
+};
+
 const ScheduleDetail = ({ schedule, onEdit, onDelete }: ScheduleDetailProps) => {
 
   const handleDelete = () => {
@@ -222,6 +227,11 @@ const ScheduleDetail = ({ schedule, onEdit, onDelete }: ScheduleDetailProps) => 
 
   // Restaurant, Spot, Shopping
   const displaySchedule = schedule as Extract<Schedule, { address: string; startDateTime: string }>;
+  const hasStartTime = isValidDateTimeString(displaySchedule.startDateTime);
+  const hasEndTime = isValidDateTimeString(displaySchedule.endDateTime);
+  const timeText = hasStartTime
+    ? `${formatTime(displaySchedule.startDateTime)}${hasEndTime ? ` - ${formatTime(displaySchedule.endDateTime!)}` : ''}`
+    : '未排定';
 
   const getIcon = () => {
     if (schedule.type === 'restaurant') return ICON_NAMES.UTENSILS;
@@ -267,8 +277,7 @@ const ScheduleDetail = ({ schedule, onEdit, onDelete }: ScheduleDetailProps) => 
         <p className="text-sm text-primary-text mb-3">{displaySchedule.address}</p>
         <p className="text-sm text-primary-text">
           <span className="font-medium text-primary">時間：</span>
-          {formatTime(displaySchedule.startDateTime)}
-          {displaySchedule.endDateTime && ` - ${formatTime(displaySchedule.endDateTime)}`}
+          {timeText}
         </p>
       </div>
 
