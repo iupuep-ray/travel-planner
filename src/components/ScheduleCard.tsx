@@ -29,11 +29,16 @@ const getScheduleTime = (schedule: Schedule, showDate: boolean): string => {
     return !Number.isNaN(new Date(dateString).getTime());
   };
 
+  const formatMonthDay = (dateString: string): string => {
+    const date = new Date(dateString);
+    return `${date.getMonth() + 1}/${date.getDate()}`;
+  };
+
   if (schedule.type === 'flight') {
     return formatFn(schedule.departure.dateTime);
   }
   if (schedule.type === 'lodging') {
-    return formatFn(schedule.checkIn);
+    return canFormatDateTime(schedule.checkIn) ? formatMonthDay(schedule.checkIn) : '未排定';
   }
   if (!canFormatDateTime(schedule.startDateTime)) {
     return '未排定';

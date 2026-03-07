@@ -4,7 +4,7 @@ import { ICON_NAMES } from '@/utils/fontawesome';
 import { uploadScheduleImage } from '@/services/storageService';
 import type { ScheduleType, Schedule } from '@/types';
 import DateTimePicker from '@/components/DateTimePicker';
-import { formatLocalDateTime } from '@/utils/date';
+import { formatDate, formatLocalDateTime } from '@/utils/date';
 
 export interface ScheduleFormSubmitData {
   name: string;
@@ -116,10 +116,10 @@ const ScheduleForm = ({ type, onSubmit, onCancel, editingSchedule }: ScheduleFor
         // Convert Date objects back to string for onSubmit
         const submissionData = {
           ...formData,
-          checkIn: formData.checkIn instanceof Date ? formatLocalDateTime(formData.checkIn) : '',
-          checkOut: formData.checkOut instanceof Date ? formatLocalDateTime(formData.checkOut) : '',
+          checkIn: formData.checkIn instanceof Date ? formatDate(formData.checkIn) : '',
+          checkOut: formData.checkOut instanceof Date ? formatDate(formData.checkOut) : '',
           startDateTime: formData.startDateTime instanceof Date ? formatLocalDateTime(formData.startDateTime) : '',
-          endDateTime: type === 'spot'
+          endDateTime: ['spot', 'restaurant', 'shopping'].includes(type)
             ? ''
             : (formData.endDateTime instanceof Date ? formatLocalDateTime(formData.endDateTime) : ''),
         };
@@ -237,16 +237,20 @@ const ScheduleForm = ({ type, onSubmit, onCancel, editingSchedule }: ScheduleFor
                 selected={formData.checkIn ?? null}
                 onChange={(date) => setFormData({ ...formData, checkIn: date })}
                 required
+                showTimeSelect={false}
+                dateFormat="M/d"
               />
               <DateTimePicker
                 label="退房日期"
                 selected={formData.checkOut ?? null}
                 onChange={(date) => setFormData({ ...formData, checkOut: date })}
                 required
+                showTimeSelect={false}
+                dateFormat="M/d"
               />
             </div>
           </>
-        ) : type === 'spot' ? (
+        ) : ['spot', 'restaurant', 'shopping'].includes(type) ? (
           <>
             <div className="mb-4">
               <DateTimePicker

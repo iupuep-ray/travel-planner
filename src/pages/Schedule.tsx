@@ -12,7 +12,7 @@ import LoaderGrid from '@/components/ui/loader-grid';
 import type { Schedule as ScheduleType, ScheduleType as ScheduleTypeEnum, FlightSchedule } from '@/types';
 
 type ScheduleTab = 'flight' | 'lodging' | 'restaurant' | 'spot' | 'shopping';
-type SpotStatusTab = 'scheduled' | 'unscheduled';
+type ScheduleStatusTab = 'scheduled' | 'unscheduled';
 
 interface TabConfig {
   key: ScheduleTab;
@@ -33,12 +33,16 @@ const Schedule = () => {
   const [activeTab, setActiveTab] = useState<ScheduleTab>('flight');
   const [selectedSchedule, setSelectedSchedule] = useState<ScheduleType | null>(null);
   const [flightDirection, setFlightDirection] = useState<'outbound' | 'return'>('outbound');
-  const [spotStatusTab, setSpotStatusTab] = useState<SpotStatusTab>('scheduled');
+  const [statusTabs, setStatusTabs] = useState<Record<'spot' | 'restaurant' | 'shopping', ScheduleStatusTab>>({
+    spot: 'scheduled',
+    restaurant: 'scheduled',
+    shopping: 'scheduled',
+  });
   const [showAddForm, setShowAddForm] = useState(false);
   const [editingSchedule, setEditingSchedule] = useState<ScheduleType | null>(null);
 
-  const hasScheduledSpotTime = (schedule: ScheduleType): boolean => {
-    if (schedule.type !== 'spot') return false;
+  const hasScheduledStartTime = (schedule: ScheduleType): boolean => {
+    if (schedule.type !== 'spot' && schedule.type !== 'restaurant' && schedule.type !== 'shopping') return false;
     const hasStartTime = typeof schedule.startDateTime === 'string' && schedule.startDateTime.trim() !== '';
     return hasStartTime;
   };
@@ -200,13 +204,15 @@ const Schedule = () => {
           </div>
         )}
 
-        {/* 景點專屬：已排定/未排定切換 */}
-        {activeTab === 'spot' && (
+        {/* 景點/餐廳/購物專屬：已排定/未排定切換 */}
+        {['spot', 'restaurant', 'shopping'].includes(activeTab) && (
           <div className="flex gap-2 mb-4">
             <button
-              onClick={() => setSpotStatusTab('scheduled')}
+              onClick={() =>
+                setStatusTabs((prev) => ({ ...prev, [activeTab]: 'scheduled' }))
+              }
               className={`flex-1 py-3 px-4 rounded-[20px] font-bold text-sm transition-all ${
-                spotStatusTab === 'scheduled'
+                statusTabs[activeTab as 'spot' | 'restaurant' | 'shopping'] === 'scheduled'
                   ? 'bg-primary text-white shadow-soft'
                   : 'bg-cream text-brown'
               }`}
@@ -214,9 +220,11 @@ const Schedule = () => {
               已排定
             </button>
             <button
-              onClick={() => setSpotStatusTab('unscheduled')}
+              onClick={() =>
+                setStatusTabs((prev) => ({ ...prev, [activeTab]: 'unscheduled' }))
+              }
               className={`flex-1 py-3 px-4 rounded-[20px] font-bold text-sm transition-all ${
-                spotStatusTab === 'unscheduled'
+                statusTabs[activeTab as 'spot' | 'restaurant' | 'shopping'] === 'unscheduled'
                   ? 'bg-primary text-white shadow-soft'
                   : 'bg-cream text-brown'
               }`}
@@ -245,18 +253,19 @@ const Schedule = () => {
             }
           }
 
-          if (activeTab === 'spot') {
+          if (['spot', 'restaurant', 'shopping'].includes(activeTab)) {
+            const statusTab = statusTabs[activeTab as 'spot' | 'restaurant' | 'shopping'];
             filteredSchedules = filteredSchedules.filter((schedule) => {
-              const isScheduledSpot = hasScheduledSpotTime(schedule);
-              return spotStatusTab === 'scheduled' ? isScheduledSpot : !isScheduledSpot;
+              const isScheduled = hasScheduledStartTime(schedule);
+              return statusTab === 'scheduled' ? isScheduled : !isScheduled;
             });
           }
 
           if (filteredSchedules.length === 0) {
             const emptyLabel = activeTab === 'flight'
               ? (flightDirection === 'outbound' ? '去程' : '回程')
-              : activeTab === 'spot'
-                ? (spotStatusTab === 'scheduled' ? '已排定景點' : '未排定景點')
+              : ['spot', 'restaurant', 'shopping'].includes(activeTab)
+                ? `${statusTabs[activeTab as 'spot' | 'restaurant' | 'shopping'] === 'scheduled' ? '已排定' : '未排定'}${tabs.find((t) => t.key === activeTab)?.label}`
                 : tabs.find((t) => t.key === activeTab)?.label;
 
             return (

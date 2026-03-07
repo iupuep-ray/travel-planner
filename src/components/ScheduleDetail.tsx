@@ -151,17 +151,11 @@ const ScheduleDetail = ({ schedule, onEdit, onDelete }: ScheduleDetailProps) => 
               <p className="text-sm text-primary-text">
                 {formatDisplayDate(parseDate(schedule.checkIn))}
               </p>
-              <p className="text-sm text-primary-text">
-                {formatTime(schedule.checkIn)}
-              </p>
             </div>
             <div>
               <p className="text-sm font-medium text-primary mb-1">Check-out</p>
               <p className="text-sm text-primary-text">
                 {formatDisplayDate(parseDate(schedule.checkOut))}
-              </p>
-              <p className="text-sm text-primary-text">
-                {formatTime(schedule.checkOut)}
               </p>
             </div>
           </div>

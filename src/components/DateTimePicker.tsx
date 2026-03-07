@@ -8,6 +8,8 @@ interface DateTimePickerProps {
   onChange: (date: Date | null) => void;
   required?: boolean;
   placeholderText?: string;
+  showTimeSelect?: boolean;
+  dateFormat?: string;
 }
 
 const DateTimePicker: React.FC<DateTimePickerProps> = ({
@@ -16,6 +18,8 @@ const DateTimePicker: React.FC<DateTimePickerProps> = ({
   onChange,
   required = false,
   placeholderText = '',
+  showTimeSelect = true,
+  dateFormat = 'Pp',
 }) => {
   return (
     <div className="mb-4">
@@ -26,9 +30,9 @@ const DateTimePicker: React.FC<DateTimePickerProps> = ({
       <DatePicker
         selected={selected}
         onChange={onChange}
-        showTimeSelect
+        showTimeSelect={showTimeSelect}
         timeIntervals={15}
-        dateFormat="Pp" // This uses locale-aware date and time formatting
+        dateFormat={dateFormat}
         timeFormat="HH:mm" // 24-hour format
         className="w-full px-4 py-3 rounded-[20px] bg-white border-2 border-cream focus:border-primary outline-none transition-colors text-brown text-sm"
         wrapperClassName="w-full" // Ensure the wrapper takes full width
