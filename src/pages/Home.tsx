@@ -122,6 +122,14 @@ const Home = () => {
 
     // 排序：優先根據 startDateTime，時間相同時依建立時間
     return filtered.sort((a, b) => {
+      const aIsLodging = a.type === 'lodging';
+      const bIsLodging = b.type === 'lodging';
+
+      // 住宿一律放在當天列表最後
+      if (aIsLodging !== bIsLodging) {
+        return aIsLodging ? 1 : -1;
+      }
+
       let timeA: string;
       let timeB: string;
 
