@@ -35,7 +35,11 @@ const getScheduleTime = (schedule: Schedule, showDate: boolean): string => {
   };
 
   if (schedule.type === 'flight') {
-    return formatFn(schedule.departure.dateTime);
+    const departure = formatFn(schedule.departure.dateTime);
+    const arrival = canFormatDateTime(schedule.arrival.dateTime)
+      ? formatFn(schedule.arrival.dateTime)
+      : '';
+    return arrival ? `${departure} - ${arrival}` : departure;
   }
   if (schedule.type === 'lodging') {
     return canFormatDateTime(schedule.checkIn) ? formatMonthDay(schedule.checkIn) : '未排定';
