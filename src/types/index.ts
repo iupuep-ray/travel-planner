@@ -5,6 +5,8 @@ export interface TransportStep {
   id: string;
   mode: string;
   duration: string;
+  note?: string;
+  image?: string;
 }
 
 export interface TransportPlan {

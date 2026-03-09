@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { ICON_NAMES } from '@/utils/fontawesome';
+import { uploadImage } from '@/services/storageService';
 import type { Schedule, TransportPlan, TransportStep } from '@/types';
 
 interface TransportPlanSheetProps {
@@ -21,6 +22,8 @@ const createEmptyStep = (): TransportStep => ({
   id: createId('step'),
   mode: '',
   duration: '',
+  note: '',
+  image: '',
 });
 
 const createEmptyPlan = (): TransportPlan => ({
@@ -47,14 +50,21 @@ const TransportPlanSheet = ({
   const [plans, setPlans] = useState<TransportPlan[]>([]);
   const [selectedPlanId, setSelectedPlanId] = useState<string | undefined>(undefined);
   const [isSaving, setIsSaving] = useState(false);
+  const [pendingImages, setPendingImages] = useState<Record<string, File | null>>({});
 
   useEffect(() => {
     const seededPlans = initialPlans && initialPlans.length > 0 ? initialPlans : [createEmptyPlan()];
     setPlans(seededPlans);
     setSelectedPlanId(initialSelectedPlanId || seededPlans[0]?.id);
+    setPendingImages({});
   }, [initialPlans, initialSelectedPlanId, toSchedule?.id]);
 
-  const updateStep = (planId: string, stepId: string, key: 'mode' | 'duration', value: string) => {
+  const updateStep = (
+    planId: string,
+    stepId: string,
+    key: 'mode' | 'duration' | 'note' | 'image',
+    value: string
+  ) => {
     setPlans((prev) =>
       prev.map((plan) =>
         plan.id === planId
@@ -67,6 +77,49 @@ const TransportPlanSheet = ({
           : plan
       )
     );
+  };
+
+  const renderLinkifiedText = (text: string) => {
+    const urlRegex = /(https?:\/\/[^\s]+)/g;
+    const parts = text.split(urlRegex);
+
+    return parts.map((part, index) => {
+      if (urlRegex.test(part)) {
+        return (
+          <a
+            key={`${part}-${index}`}
+            href={part}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="text-primary underline break-all"
+          >
+            {part}
+          </a>
+        );
+      }
+
+      return <span key={`${part}-${index}`}>{part}</span>;
+    });
+  };
+
+  const handleImageChange = (planId: string, stepId: string, file?: File) => {
+    if (!file) return;
+    if (!file.type.startsWith('image/')) {
+      alert('請選擇圖片檔案');
+      return;
+    }
+    if (file.size > 5 * 1024 * 1024) {
+      alert('圖片檔案大小不得超過 5MB');
+      return;
+    }
+
+    setPendingImages((prev) => ({ ...prev, [stepId]: file }));
+    updateStep(planId, stepId, 'image', URL.createObjectURL(file));
+  };
+
+  const removeImage = (planId: string, stepId: string) => {
+    setPendingImages((prev) => ({ ...prev, [stepId]: null }));
+    updateStep(planId, stepId, 'image', '');
   };
 
   const addPlan = () => {
@@ -111,20 +164,37 @@ const TransportPlanSheet = ({
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
-    const normalizedPlans = plans
+    const normalizedPlans = await Promise.all(plans
       .map((plan) => ({
         ...plan,
-        steps: plan.steps
-          .map((step) => ({
-            ...step,
-            mode: step.mode.trim(),
-            duration: step.duration.trim(),
-          }))
-          .filter((step) => step.mode || step.duration),
-      }))
-      .filter((plan) => plan.steps.length > 0);
+        steps: Promise.all(
+          plan.steps.map(async (step) => {
+            let image = (step.image || '').trim();
+            const pendingFile = pendingImages[step.id];
+            if (pendingFile) {
+              image = await uploadImage(pendingFile, 'transports');
+            }
 
-    if (normalizedPlans.length === 0) {
+            return {
+              ...step,
+              mode: step.mode.trim(),
+              duration: step.duration.trim(),
+              note: (step.note || '').trim(),
+              image,
+            };
+          })
+        ),
+      }))
+    );
+
+    const resolvedPlans = (await Promise.all(
+      normalizedPlans.map(async (plan) => ({
+        ...plan,
+        steps: (await plan.steps).filter((step) => step.mode || step.duration || step.note || step.image),
+      }))
+    )).filter((plan) => plan.steps.length > 0);
+
+    if (resolvedPlans.length === 0) {
       try {
         setIsSaving(true);
         await onSave({
@@ -141,12 +211,12 @@ const TransportPlanSheet = ({
     }
 
     const effectiveSelectedPlanId =
-      normalizedPlans.find((plan) => plan.id === selectedPlanId)?.id || normalizedPlans[0]?.id;
+      resolvedPlans.find((plan) => plan.id === selectedPlanId)?.id || resolvedPlans[0]?.id;
 
     try {
       setIsSaving(true);
       await onSave({
-        transportPlans: normalizedPlans,
+        transportPlans: resolvedPlans,
         selectedTransportPlanId: effectiveSelectedPlanId,
       });
     } catch (error) {
@@ -245,6 +315,47 @@ const TransportPlanSheet = ({
                         className="w-full px-4 py-3 rounded-[18px] bg-[#FFFDF8] border-2 border-cream focus:border-primary outline-none transition-colors text-brown"
                         placeholder="例如：15 分鐘"
                       />
+                    </div>
+                    <div>
+                      <label className="block text-sm font-bold text-brown mb-2">備註</label>
+                      <textarea
+                        value={step.note || ''}
+                        onChange={(e) => updateStep(plan.id, step.id, 'note', e.target.value)}
+                        className="w-full min-h-[96px] px-4 py-3 rounded-[18px] bg-[#FFFDF8] border-2 border-cream focus:border-primary outline-none transition-colors text-brown resize-none"
+                        placeholder="可填寫補充說明，若包含網址會自動轉成可點連結"
+                      />
+                      {!!step.note?.trim() && (
+                        <div className="mt-2 rounded-[14px] bg-[#FBF6ED] px-3 py-2 text-sm text-brown break-words">
+                          {renderLinkifiedText(step.note)}
+                        </div>
+                      )}
+                    </div>
+                    <div>
+                      <label className="block text-sm font-bold text-brown mb-2">圖片</label>
+                      <input
+                        type="file"
+                        accept="image/*"
+                        onChange={(e) => handleImageChange(plan.id, step.id, e.target.files?.[0])}
+                        className="block w-full text-sm text-brown file:mr-3 file:rounded-[14px] file:border-0 file:bg-primary file:px-4 file:py-2 file:font-bold file:text-white"
+                      />
+                      {step.image && (
+                        <div className="mt-3">
+                          <div className="relative w-full max-w-[220px] overflow-hidden rounded-[18px] border border-[#EFE4D6] bg-[#FFFDF8]">
+                            <img
+                              src={step.image}
+                              alt="交通資訊圖片"
+                              className="h-32 w-full object-cover"
+                            />
+                          </div>
+                          <button
+                            type="button"
+                            onClick={() => removeImage(plan.id, step.id)}
+                            className="mt-2 text-xs font-bold text-red-500"
+                          >
+                            移除圖片
+                          </button>
+                        </div>
+                      )}
                     </div>
                   </div>
                 </div>
