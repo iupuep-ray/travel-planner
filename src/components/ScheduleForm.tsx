@@ -119,9 +119,7 @@ const ScheduleForm = ({ type, onSubmit, onCancel, editingSchedule }: ScheduleFor
           checkIn: formData.checkIn instanceof Date ? formatDate(formData.checkIn) : '',
           checkOut: formData.checkOut instanceof Date ? formatDate(formData.checkOut) : '',
           startDateTime: formData.startDateTime instanceof Date ? formatLocalDateTime(formData.startDateTime) : '',
-          endDateTime: ['spot', 'restaurant', 'shopping'].includes(type)
-            ? ''
-            : (formData.endDateTime instanceof Date ? formatLocalDateTime(formData.endDateTime) : ''),
+          endDateTime: formData.endDateTime instanceof Date ? formatLocalDateTime(formData.endDateTime) : '',
         };
   
         // 如果有新上傳的圖片,先上傳圖片
@@ -252,11 +250,17 @@ const ScheduleForm = ({ type, onSubmit, onCancel, editingSchedule }: ScheduleFor
           </>
         ) : ['spot', 'restaurant', 'shopping'].includes(type) ? (
           <>
-            <div className="mb-4">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-3 mb-4">
               <DateTimePicker
                 label="開始時間（選填）"
                 selected={formData.startDateTime ?? null}
                 onChange={(date) => setFormData({ ...formData, startDateTime: date })}
+                required={false}
+              />
+              <DateTimePicker
+                label="結束時間（選填）"
+                selected={formData.endDateTime ?? null}
+                onChange={(date) => setFormData({ ...formData, endDateTime: date })}
                 required={false}
               />
             </div>

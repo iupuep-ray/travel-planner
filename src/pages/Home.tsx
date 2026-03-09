@@ -31,7 +31,10 @@ const Home = () => {
 
   const { schedules, loading, editSchedule } = useSchedules();
   const [selectedSchedule, setSelectedSchedule] = useState<Schedule | null>(null);
-  const [transportEditingSchedule, setTransportEditingSchedule] = useState<Schedule | null>(null);
+  const [transportEditingContext, setTransportEditingContext] = useState<{
+    ownerSchedule: Schedule;
+    nextSchedule: Schedule;
+  } | null>(null);
   const [editingSchedule, setEditingSchedule] = useState<Schedule | null>(null);
   const [weather, setWeather] = useState<HomeWeatherInfo>({
     icon: ICON_NAMES.CLOUD_SUN,
@@ -357,11 +360,12 @@ const Home = () => {
             <div>
               {schedulesForDate.map((schedule, index) => {
                 const previousSchedule = index > 0 ? schedulesForDate[index - 1] : null;
-                const hasTransportPlan = !!getSelectedTransportPlan(schedule);
+                const transportOwner = previousSchedule;
+                const hasTransportPlan = transportOwner ? !!getSelectedTransportPlan(transportOwner) : false;
 
                 return (
                   <div key={schedule.id}>
-                    {previousSchedule && (
+                    {previousSchedule && transportOwner && (
                       <div className="relative pl-4 pb-2">
                         <div className="flex items-stretch gap-3">
                           <div className="w-10 flex justify-center">
@@ -377,11 +381,16 @@ const Home = () => {
                           </div>
                           <button
                             type="button"
-                            onClick={() => setTransportEditingSchedule(schedule)}
+                            onClick={() =>
+                              setTransportEditingContext({
+                                ownerSchedule: transportOwner,
+                                nextSchedule: schedule,
+                              })
+                            }
                             className="flex-1 rounded-[20px] border border-[#E5D8C7] px-4 py-2.5 text-left transition-transform active:scale-[0.99]"
                           >
                             <p className="text-sm font-bold text-[#6A503B]">
-                              {formatTransportSummary(schedule)}
+                              {formatTransportSummary(transportOwner)}
                             </p>
                             <p className="text-xs text-[#7A614C] mt-1">
                               {hasTransportPlan ? '點擊編輯交通方案' : '點擊新增交通方案'}
@@ -430,31 +439,22 @@ const Home = () => {
         </BottomSheet>
 
         <BottomSheet
-          isOpen={transportEditingSchedule !== null}
-          onClose={() => setTransportEditingSchedule(null)}
+          isOpen={transportEditingContext !== null}
+          onClose={() => setTransportEditingContext(null)}
         >
-          {transportEditingSchedule && (
+          {transportEditingContext && (
             <TransportPlanSheet
-              fromSchedule={
-                schedulesForDate.find(
-                  (item, index) =>
-                    item.id === transportEditingSchedule.id && index > 0
-                )
-                  ? schedulesForDate[
-                      schedulesForDate.findIndex((item) => item.id === transportEditingSchedule.id) - 1
-                    ]
-                  : null
-              }
-              toSchedule={transportEditingSchedule}
-              initialPlans={transportEditingSchedule.transportPlans}
-              initialSelectedPlanId={transportEditingSchedule.selectedTransportPlanId}
-              onCancel={() => setTransportEditingSchedule(null)}
+              fromSchedule={transportEditingContext.ownerSchedule}
+              toSchedule={transportEditingContext.nextSchedule}
+              initialPlans={transportEditingContext.ownerSchedule.transportPlans}
+              initialSelectedPlanId={transportEditingContext.ownerSchedule.selectedTransportPlanId}
+              onCancel={() => setTransportEditingContext(null)}
               onSave={async ({ transportPlans, selectedTransportPlanId }) => {
-                await editSchedule(transportEditingSchedule.id, {
+                await editSchedule(transportEditingContext.ownerSchedule.id, {
                   transportPlans,
                   selectedTransportPlanId: selectedTransportPlanId ?? null,
                 });
-                setTransportEditingSchedule(null);
+                setTransportEditingContext(null);
               }}
             />
           )}
