@@ -171,7 +171,7 @@ const Home = () => {
 
     return selectedPlan.steps
       .map((step) => [step.mode, step.duration].filter(Boolean).join(' '))
-      .join(' / ');
+      .join(' → ');
   };
 
   useEffect(() => {
@@ -331,11 +331,11 @@ const Home = () => {
                 return (
                   <div key={schedule.id}>
                     {previousSchedule && (
-                      <div className="relative pl-4 pb-3">
+                      <div className="relative pl-4 pb-2">
                         <div className="flex items-stretch gap-3">
                           <div className="w-10 flex justify-center">
                             <div className="flex flex-col items-center justify-center gap-1.5">
-                              {Array.from({ length: 7 }).map((_, dashIndex) => (
+                              {Array.from({ length: 5 }).map((_, dashIndex) => (
                                 <span
                                   key={dashIndex}
                                   className="block h-2 w-[3px] rounded-full bg-[#9F856D]"
@@ -347,7 +347,7 @@ const Home = () => {
                           <button
                             type="button"
                             onClick={() => setTransportEditingSchedule(schedule)}
-                            className="flex-1 rounded-[20px] border border-[#E5D8C7] px-4 py-3 text-left transition-transform active:scale-[0.99]"
+                            className="flex-1 rounded-[20px] border border-[#E5D8C7] px-4 py-2.5 text-left transition-transform active:scale-[0.99]"
                           >
                             <p className="text-sm font-bold text-[#6A503B]">
                               {formatTransportSummary(schedule)}
