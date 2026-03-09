@@ -402,7 +402,7 @@ const Home = () => {
               onSave={async ({ transportPlans, selectedTransportPlanId }) => {
                 await editSchedule(transportEditingSchedule.id, {
                   transportPlans,
-                  selectedTransportPlanId,
+                  selectedTransportPlanId: selectedTransportPlanId ?? null,
                 });
                 setTransportEditingSchedule(null);
               }}

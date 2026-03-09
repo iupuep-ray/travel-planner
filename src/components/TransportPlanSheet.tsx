@@ -124,6 +124,22 @@ const TransportPlanSheet = ({
       }))
       .filter((plan) => plan.steps.length > 0);
 
+    if (normalizedPlans.length === 0) {
+      try {
+        setIsSaving(true);
+        await onSave({
+          transportPlans: [],
+          selectedTransportPlanId: undefined,
+        });
+      } catch (error) {
+        console.error('儲存交通方案失敗:', error);
+        alert('儲存交通方案失敗，請稍後再試');
+      } finally {
+        setIsSaving(false);
+      }
+      return;
+    }
+
     const effectiveSelectedPlanId =
       normalizedPlans.find((plan) => plan.id === selectedPlanId)?.id || normalizedPlans[0]?.id;
 

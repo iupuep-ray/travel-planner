@@ -14,7 +14,7 @@ export interface TransportPlan {
 
 export interface ScheduleTransportMeta {
   transportPlans?: TransportPlan[];
-  selectedTransportPlanId?: string;
+  selectedTransportPlanId?: string | null;
 }
 
 // 機票資訊
