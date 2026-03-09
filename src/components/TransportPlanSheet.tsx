@@ -32,7 +32,7 @@ const createEmptyPlan = (): TransportPlan => ({
 });
 
 const getScheduleLabel = (schedule: Schedule | null): string => {
-  if (!schedule) return '';
+  if (!schedule) return '旅程開始前';
   if (schedule.type === 'flight') {
     return `${schedule.departure.airport} → ${schedule.arrival.airport}`;
   }

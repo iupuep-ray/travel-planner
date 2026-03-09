@@ -43,7 +43,11 @@ const getScheduleTime = (schedule: Schedule, showDate: boolean): string => {
   if (!canFormatDateTime(schedule.startDateTime)) {
     return '未排定';
   }
-  return formatFn(schedule.startDateTime);
+
+  const start = formatFn(schedule.startDateTime);
+  const endDateTime = schedule.endDateTime;
+  const end = endDateTime && canFormatDateTime(endDateTime) ? formatFn(endDateTime) : '';
+  return end ? `${start} - ${end}` : start;
 };
 
 const getScheduleTitle = (schedule: Schedule): string => {

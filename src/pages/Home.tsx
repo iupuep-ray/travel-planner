@@ -1,4 +1,4 @@
-import { useState, useMemo, useEffect } from 'react';
+import { useState, useMemo, useEffect, useRef } from 'react';
 import DatePicker from '@/components/DatePicker';
 import ScheduleCard from '@/components/ScheduleCard';
 import BottomSheet from '@/components/BottomSheet';
@@ -32,8 +32,8 @@ const Home = () => {
   const { schedules, loading, editSchedule } = useSchedules();
   const [selectedSchedule, setSelectedSchedule] = useState<Schedule | null>(null);
   const [transportEditingContext, setTransportEditingContext] = useState<{
+    fromSchedule: Schedule | null;
     ownerSchedule: Schedule;
-    nextSchedule: Schedule;
   } | null>(null);
   const [editingSchedule, setEditingSchedule] = useState<Schedule | null>(null);
   const [weather, setWeather] = useState<HomeWeatherInfo>({
@@ -43,6 +43,7 @@ const Home = () => {
     location: '大阪',
   });
   const [weatherLoading, setWeatherLoading] = useState(false);
+  const hasInitializedSelectedDate = useRef(false);
   const weatherImage = WEATHER_IMAGE_MAP[weather.icon] || WEATHER_IMAGE_MAP[ICON_NAMES.CLOUD_SUN];
 
   // 計算旅遊日期範圍
@@ -163,6 +164,75 @@ const Home = () => {
       return new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime();
     });
   }, [schedules, selectedDate]);
+
+  const firstTripScheduleId = useMemo(() => {
+    if (travelDates.length === 0 || schedules.length === 0) return null;
+
+    const firstTripDate = travelDates[0];
+    const firstDaySchedules: Schedule[] = [];
+
+    schedules.forEach((schedule) => {
+      if (schedule.type === 'flight') {
+        const departureDate = parseDate(schedule.departure.dateTime);
+        if (isSameDay(departureDate, firstTripDate)) {
+          firstDaySchedules.push(schedule);
+        }
+      } else if (schedule.type === 'lodging') {
+        const checkIn = parseDate(schedule.checkIn);
+        const checkOut = parseDate(schedule.checkOut);
+        const checkInDate = new Date(checkIn.getFullYear(), checkIn.getMonth(), checkIn.getDate());
+        const checkOutDate = new Date(checkOut.getFullYear(), checkOut.getMonth(), checkOut.getDate());
+        const currentDate = new Date(
+          firstTripDate.getFullYear(),
+          firstTripDate.getMonth(),
+          firstTripDate.getDate()
+        );
+
+        if (currentDate >= checkInDate && currentDate < checkOutDate) {
+          firstDaySchedules.push(schedule);
+        }
+      } else {
+        const startDate = parseDate(schedule.startDateTime);
+        if (isSameDay(startDate, firstTripDate)) {
+          firstDaySchedules.push(schedule);
+        }
+      }
+    });
+
+    const sortedFirstDaySchedules = firstDaySchedules.sort((a, b) => {
+      const aIsLodging = a.type === 'lodging';
+      const bIsLodging = b.type === 'lodging';
+
+      if (aIsLodging !== bIsLodging) {
+        return aIsLodging ? 1 : -1;
+      }
+
+      const getTime = (item: Schedule) => {
+        if (item.type === 'flight') return item.departure.dateTime;
+        if (item.type === 'lodging') return item.checkIn;
+        return item.startDateTime;
+      };
+
+      const timeCompare = new Date(getTime(a)).getTime() - new Date(getTime(b)).getTime();
+      if (timeCompare !== 0) return timeCompare;
+
+      return new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime();
+    });
+
+    return sortedFirstDaySchedules[0]?.id || null;
+  }, [travelDates, schedules]);
+
+  useEffect(() => {
+    if (hasInitializedSelectedDate.current || travelDates.length === 0) {
+      return;
+    }
+
+    const today = new Date();
+    const matchedDate = travelDates.find((date) => isSameDay(date, today));
+
+    setSelectedDate(matchedDate || travelDates[0]);
+    hasInitializedSelectedDate.current = true;
+  }, [travelDates]);
 
   const getSelectedTransportPlan = (schedule: Schedule): TransportPlan | undefined => {
     const plans = schedule.transportPlans || [];
@@ -360,12 +430,13 @@ const Home = () => {
             <div>
               {schedulesForDate.map((schedule, index) => {
                 const previousSchedule = index > 0 ? schedulesForDate[index - 1] : null;
-                const transportOwner = previousSchedule;
-                const hasTransportPlan = transportOwner ? !!getSelectedTransportPlan(transportOwner) : false;
+                const transportOwner = schedule;
+                const hasTransportPlan = !!getSelectedTransportPlan(transportOwner);
+                const shouldShowTransportCard = schedule.id !== firstTripScheduleId;
 
                 return (
                   <div key={schedule.id}>
-                    {previousSchedule && transportOwner && (
+                    {shouldShowTransportCard && (
                       <div className="relative pl-4 pb-2">
                         <div className="flex items-stretch gap-3">
                           <div className="w-10 flex justify-center">
@@ -383,8 +454,8 @@ const Home = () => {
                             type="button"
                             onClick={() =>
                               setTransportEditingContext({
+                                fromSchedule: previousSchedule,
                                 ownerSchedule: transportOwner,
-                                nextSchedule: schedule,
                               })
                             }
                             className="flex-1 rounded-[20px] border border-[#E5D8C7] px-4 py-2.5 text-left transition-transform active:scale-[0.99]"
@@ -444,8 +515,8 @@ const Home = () => {
         >
           {transportEditingContext && (
             <TransportPlanSheet
-              fromSchedule={transportEditingContext.ownerSchedule}
-              toSchedule={transportEditingContext.nextSchedule}
+              fromSchedule={transportEditingContext.fromSchedule}
+              toSchedule={transportEditingContext.ownerSchedule}
               initialPlans={transportEditingContext.ownerSchedule.transportPlans}
               initialSelectedPlanId={transportEditingContext.ownerSchedule.selectedTransportPlanId}
               onCancel={() => setTransportEditingContext(null)}
