@@ -7,7 +7,7 @@ interface TransportPlanSheetProps {
   fromSchedule: Schedule | null;
   toSchedule: Schedule | null;
   initialPlans?: TransportPlan[];
-  initialSelectedPlanId?: string;
+  initialSelectedPlanId?: string | null;
   onCancel: () => void;
   onSave: (payload: {
     transportPlans: TransportPlan[];

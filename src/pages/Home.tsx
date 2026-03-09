@@ -3,9 +3,11 @@ import DatePicker from '@/components/DatePicker';
 import ScheduleCard from '@/components/ScheduleCard';
 import BottomSheet from '@/components/BottomSheet';
 import ScheduleDetail from '@/components/ScheduleDetail';
+import ScheduleForm, { ScheduleFormSubmitData } from '@/components/ScheduleForm';
 import TransportPlanSheet from '@/components/TransportPlanSheet';
 import ScheduleCardSkeleton from '@/components/skeletons/ScheduleCardSkeleton';
 import { useSchedules } from '@/hooks/useSchedules';
+import { updateShoppingItemsFromSchedule } from '@/services/planningService';
 import { formatDate, parseDate, getDaysBetween, isSameDay } from '@/utils/date';
 import { ICON_NAMES } from '@/utils/fontawesome';
 import { LOCAL_IMAGES } from '@/config/images';
@@ -30,6 +32,7 @@ const Home = () => {
   const { schedules, loading, editSchedule } = useSchedules();
   const [selectedSchedule, setSelectedSchedule] = useState<Schedule | null>(null);
   const [transportEditingSchedule, setTransportEditingSchedule] = useState<Schedule | null>(null);
+  const [editingSchedule, setEditingSchedule] = useState<Schedule | null>(null);
   const [weather, setWeather] = useState<HomeWeatherInfo>({
     icon: ICON_NAMES.CLOUD_SUN,
     temp: '--°C',
@@ -172,6 +175,34 @@ const Home = () => {
     return selectedPlan.steps
       .map((step) => [step.mode, step.duration].filter(Boolean).join(' '))
       .join(' → ');
+  };
+
+  const handleOpenScheduleEdit = () => {
+    if (!selectedSchedule || selectedSchedule.type === 'flight') return;
+    setEditingSchedule(selectedSchedule);
+    setSelectedSchedule(null);
+  };
+
+  const handleEditSchedule = async (data: ScheduleFormSubmitData) => {
+    if (!editingSchedule) return;
+
+    try {
+      await editSchedule(editingSchedule.id, data as any);
+
+      if (editingSchedule.type === 'shopping') {
+        try {
+          await updateShoppingItemsFromSchedule(editingSchedule.id, data.shoppingItems || []);
+        } catch (error) {
+          console.error('更新購物清單項目失敗:', error);
+          alert('購物清單項目更新失敗，但行程已更新成功');
+        }
+      }
+
+      setEditingSchedule(null);
+    } catch (error) {
+      console.error('編輯行程失敗:', error);
+      alert('編輯行程失敗，請稍後再試');
+    }
   };
 
   useEffect(() => {
@@ -376,7 +407,26 @@ const Home = () => {
           isOpen={selectedSchedule !== null}
           onClose={() => setSelectedSchedule(null)}
         >
-          {selectedSchedule && <ScheduleDetail schedule={selectedSchedule} />}
+          {selectedSchedule && (
+            <ScheduleDetail
+              schedule={selectedSchedule}
+              onEdit={selectedSchedule.type !== 'flight' ? handleOpenScheduleEdit : undefined}
+            />
+          )}
+        </BottomSheet>
+
+        <BottomSheet
+          isOpen={editingSchedule !== null}
+          onClose={() => setEditingSchedule(null)}
+        >
+          {editingSchedule && editingSchedule.type !== 'flight' && (
+            <ScheduleForm
+              type={editingSchedule.type}
+              editingSchedule={editingSchedule}
+              onSubmit={handleEditSchedule}
+              onCancel={() => setEditingSchedule(null)}
+            />
+          )}
         </BottomSheet>
 
         <BottomSheet
