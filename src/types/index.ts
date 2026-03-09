@@ -1,8 +1,24 @@
 // 行程類型定義
 export type ScheduleType = 'flight' | 'lodging' | 'restaurant' | 'spot' | 'shopping';
 
+export interface TransportStep {
+  id: string;
+  mode: string;
+  duration: string;
+}
+
+export interface TransportPlan {
+  id: string;
+  steps: TransportStep[];
+}
+
+export interface ScheduleTransportMeta {
+  transportPlans?: TransportPlan[];
+  selectedTransportPlanId?: string;
+}
+
 // 機票資訊
-export interface FlightSchedule {
+export interface FlightSchedule extends ScheduleTransportMeta {
   type: 'flight';
   id: string;
   flightNumber: string;
@@ -25,7 +41,7 @@ export interface FlightSchedule {
 }
 
 // 住宿資訊
-export interface LodgingSchedule {
+export interface LodgingSchedule extends ScheduleTransportMeta {
   type: 'lodging';
   id: string;
   name: string;
@@ -39,7 +55,7 @@ export interface LodgingSchedule {
 }
 
 // 餐廳資訊
-export interface RestaurantSchedule {
+export interface RestaurantSchedule extends ScheduleTransportMeta {
   type: 'restaurant';
   id: string;
   name: string;
@@ -53,7 +69,7 @@ export interface RestaurantSchedule {
 }
 
 // 景點資訊
-export interface SpotSchedule {
+export interface SpotSchedule extends ScheduleTransportMeta {
   type: 'spot';
   id: string;
   name: string;
@@ -67,7 +83,7 @@ export interface SpotSchedule {
 }
 
 // 購物資訊
-export interface ShoppingSchedule {
+export interface ShoppingSchedule extends ScheduleTransportMeta {
   type: 'shopping';
   id: string;
   name: string;

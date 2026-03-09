@@ -62,7 +62,7 @@ const ScheduleCard = ({ schedule, onClick, showDate = false }: ScheduleCardProps
   return (
     <div
       onClick={onClick}
-      className="rounded-[40px] shadow-soft p-4 mb-3 transition-transform active:scale-[0.98] cursor-pointer relative overflow-hidden animate-fadeIn"
+      className="rounded-[20px] shadow-soft p-4 mb-3 transition-transform active:scale-[0.98] cursor-pointer relative overflow-hidden animate-fadeIn"
       style={{ backgroundColor: '#F5EFE1' }}
     >
       {/* Decoration Image - 置右且上下置中 */}

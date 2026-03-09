@@ -3,12 +3,13 @@ import DatePicker from '@/components/DatePicker';
 import ScheduleCard from '@/components/ScheduleCard';
 import BottomSheet from '@/components/BottomSheet';
 import ScheduleDetail from '@/components/ScheduleDetail';
+import TransportPlanSheet from '@/components/TransportPlanSheet';
 import ScheduleCardSkeleton from '@/components/skeletons/ScheduleCardSkeleton';
 import { useSchedules } from '@/hooks/useSchedules';
 import { formatDate, parseDate, getDaysBetween, isSameDay } from '@/utils/date';
 import { ICON_NAMES } from '@/utils/fontawesome';
 import { LOCAL_IMAGES } from '@/config/images';
-import type { Schedule } from '@/types';
+import type { Schedule, TransportPlan } from '@/types';
 import {
   fetchWeatherForDate,
   getConfiguredTripDates,
@@ -26,8 +27,9 @@ const Home = () => {
     [ICON_NAMES.CLOUD_RAIN]: getImagePath('/newpic/weather_rain.png'),
   };
 
-  const { schedules, loading } = useSchedules();
+  const { schedules, loading, editSchedule } = useSchedules();
   const [selectedSchedule, setSelectedSchedule] = useState<Schedule | null>(null);
+  const [transportEditingSchedule, setTransportEditingSchedule] = useState<Schedule | null>(null);
   const [weather, setWeather] = useState<HomeWeatherInfo>({
     icon: ICON_NAMES.CLOUD_SUN,
     temp: '--°C',
@@ -155,6 +157,22 @@ const Home = () => {
       return new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime();
     });
   }, [schedules, selectedDate]);
+
+  const getSelectedTransportPlan = (schedule: Schedule): TransportPlan | undefined => {
+    const plans = schedule.transportPlans || [];
+    return plans.find((plan) => plan.id === schedule.selectedTransportPlanId) || plans[0];
+  };
+
+  const formatTransportSummary = (schedule: Schedule): string => {
+    const selectedPlan = getSelectedTransportPlan(schedule);
+    if (!selectedPlan || selectedPlan.steps.length === 0) {
+      return '設定交通方式';
+    }
+
+    return selectedPlan.steps
+      .map((step) => [step.mode, step.duration].filter(Boolean).join(' '))
+      .join(' / ');
+  };
 
   useEffect(() => {
     let cancelled = false;
@@ -306,13 +324,49 @@ const Home = () => {
             </div>
           ) : (
             <div>
-              {schedulesForDate.map((schedule) => (
-                <ScheduleCard
-                  key={schedule.id}
-                  schedule={schedule}
-                  onClick={() => setSelectedSchedule(schedule)}
-                />
-              ))}
+              {schedulesForDate.map((schedule, index) => {
+                const previousSchedule = index > 0 ? schedulesForDate[index - 1] : null;
+                const hasTransportPlan = !!getSelectedTransportPlan(schedule);
+
+                return (
+                  <div key={schedule.id}>
+                    {previousSchedule && (
+                      <div className="relative pl-4 pb-3">
+                        <div className="flex items-stretch gap-3">
+                          <div className="w-10 flex justify-center">
+                            <div className="flex flex-col items-center justify-center gap-1.5">
+                              {Array.from({ length: 7 }).map((_, dashIndex) => (
+                                <span
+                                  key={dashIndex}
+                                  className="block h-2 w-[3px] rounded-full bg-[#9F856D]"
+                                  style={{ backgroundColor: '#B8A18B' }}
+                                />
+                              ))}
+                            </div>
+                          </div>
+                          <button
+                            type="button"
+                            onClick={() => setTransportEditingSchedule(schedule)}
+                            className="flex-1 rounded-[20px] border border-[#E5D8C7] px-4 py-3 text-left transition-transform active:scale-[0.99]"
+                          >
+                            <p className="text-sm font-bold text-[#6A503B]">
+                              {formatTransportSummary(schedule)}
+                            </p>
+                            <p className="text-xs text-[#7A614C] mt-1">
+                              {hasTransportPlan ? '點擊編輯交通方案' : '點擊新增交通方案'}
+                            </p>
+                          </button>
+                        </div>
+                      </div>
+                    )}
+
+                    <ScheduleCard
+                      schedule={schedule}
+                      onClick={() => setSelectedSchedule(schedule)}
+                    />
+                  </div>
+                );
+              })}
             </div>
           )}
         </div>
@@ -323,6 +377,37 @@ const Home = () => {
           onClose={() => setSelectedSchedule(null)}
         >
           {selectedSchedule && <ScheduleDetail schedule={selectedSchedule} />}
+        </BottomSheet>
+
+        <BottomSheet
+          isOpen={transportEditingSchedule !== null}
+          onClose={() => setTransportEditingSchedule(null)}
+        >
+          {transportEditingSchedule && (
+            <TransportPlanSheet
+              fromSchedule={
+                schedulesForDate.find(
+                  (item, index) =>
+                    item.id === transportEditingSchedule.id && index > 0
+                )
+                  ? schedulesForDate[
+                      schedulesForDate.findIndex((item) => item.id === transportEditingSchedule.id) - 1
+                    ]
+                  : null
+              }
+              toSchedule={transportEditingSchedule}
+              initialPlans={transportEditingSchedule.transportPlans}
+              initialSelectedPlanId={transportEditingSchedule.selectedTransportPlanId}
+              onCancel={() => setTransportEditingSchedule(null)}
+              onSave={async ({ transportPlans, selectedTransportPlanId }) => {
+                await editSchedule(transportEditingSchedule.id, {
+                  transportPlans,
+                  selectedTransportPlanId,
+                });
+                setTransportEditingSchedule(null);
+              }}
+            />
+          )}
         </BottomSheet>
       </div>
     </>
