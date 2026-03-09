@@ -9,6 +9,7 @@ interface ScheduleCardProps {
   schedule: Schedule;
   onClick: () => void;
   showDate?: boolean; // 是否顯示日期（月/日）
+  displayDate?: Date;
 }
 
 const getScheduleIcon = (type: Schedule['type']): IconName => {
@@ -22,15 +23,15 @@ const getScheduleIcon = (type: Schedule['type']): IconName => {
   return icons[type];
 };
 
-const getScheduleTime = (schedule: Schedule, showDate: boolean): string => {
+const getScheduleTime = (schedule: Schedule, showDate: boolean, displayDate?: Date): string => {
   const formatFn = showDate ? formatDateTimeShort : formatTime;
   const canFormatDateTime = (dateString?: string): boolean => {
     if (!dateString || !dateString.trim()) return false;
     return !Number.isNaN(new Date(dateString).getTime());
   };
 
-  const formatMonthDay = (dateString: string): string => {
-    const date = new Date(dateString);
+  const formatMonthDay = (value: string | Date): string => {
+    const date = value instanceof Date ? value : new Date(value);
     return `${date.getMonth() + 1}/${date.getDate()}`;
   };
 
@@ -42,6 +43,9 @@ const getScheduleTime = (schedule: Schedule, showDate: boolean): string => {
     return arrival ? `${departure} - ${arrival}` : departure;
   }
   if (schedule.type === 'lodging') {
+    if (displayDate) {
+      return formatMonthDay(displayDate);
+    }
     return canFormatDateTime(schedule.checkIn) ? formatMonthDay(schedule.checkIn) : '未排定';
   }
   if (!canFormatDateTime(schedule.startDateTime)) {
@@ -61,9 +65,9 @@ const getScheduleTitle = (schedule: Schedule): string => {
   return schedule.name;
 };
 
-const ScheduleCard = ({ schedule, onClick, showDate = false }: ScheduleCardProps) => {
+const ScheduleCard = ({ schedule, onClick, showDate = false, displayDate }: ScheduleCardProps) => {
   const icon = getScheduleIcon(schedule.type);
-  const time = getScheduleTime(schedule, showDate);
+  const time = getScheduleTime(schedule, showDate, displayDate);
   const title = getScheduleTitle(schedule);
   const decorationImage = getRandomDecoration(schedule.type, schedule.id);
 

@@ -474,6 +474,7 @@ const Home = () => {
                     <ScheduleCard
                       schedule={schedule}
                       onClick={() => setSelectedSchedule(schedule)}
+                      displayDate={selectedDate}
                     />
                   </div>
                 );
