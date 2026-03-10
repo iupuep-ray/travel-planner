@@ -11,7 +11,7 @@ import { updateShoppingItemsFromSchedule } from '@/services/planningService';
 import { formatDate, parseDate, getDaysBetween, isSameDay } from '@/utils/date';
 import { ICON_NAMES } from '@/utils/fontawesome';
 import { LOCAL_IMAGES } from '@/config/images';
-import type { Schedule, TransportPlan } from '@/types';
+import type { Schedule, TransportPlan, TransportStep } from '@/types';
 import {
   fetchWeatherForDate,
   getConfiguredTripDates,
@@ -239,15 +239,78 @@ const Home = () => {
     return plans.find((plan) => plan.id === schedule.selectedTransportPlanId) || plans[0];
   };
 
-  const formatTransportSummary = (schedule: Schedule): string => {
-    const selectedPlan = getSelectedTransportPlan(schedule);
-    if (!selectedPlan || selectedPlan.steps.length === 0) {
-      return '設定交通方式';
+  const parseDurationToMinutes = (raw: string): number | null => {
+    const text = raw.trim();
+    if (!text) return null;
+
+    let total = 0;
+    let found = false;
+    const hourRegex = /(\d+(?:\.\d+)?)(?=\s*(?:h|hr|hrs|hour|hours|小時|時))/gi;
+    const minuteRegex = /(\d+(?:\.\d+)?)(?=\s*(?:m|min|mins|minute|minutes|分鐘|分))/gi;
+
+    let match: RegExpExecArray | null;
+    while ((match = hourRegex.exec(text)) !== null) {
+      total += Number(match[1]) * 60;
+      found = true;
+    }
+    while ((match = minuteRegex.exec(text)) !== null) {
+      total += Number(match[1]);
+      found = true;
     }
 
-    return selectedPlan.steps
-      .map((step) => [step.mode, step.duration].filter(Boolean).join(' '))
-      .join(' → ');
+    if (!found) {
+      const compact = text.replace(/\s+/g, '');
+      if (/^\d+(?:\.\d+)?$/.test(compact)) {
+        total = Number(compact);
+        found = true;
+      }
+    }
+
+    if (!found || Number.isNaN(total)) return null;
+    return Math.round(total);
+  };
+
+  const formatTotalMinutes = (totalMinutes: number): string => {
+    if (totalMinutes < 60) return `${totalMinutes} 分鐘`;
+    const hours = Math.floor(totalMinutes / 60);
+    const minutes = totalMinutes % 60;
+    if (minutes === 0) return `${hours} 小時`;
+    return `${hours} 小時 ${minutes} 分鐘`;
+  };
+
+  const getTotalMinutes = (steps: TransportStep[]): number | null => {
+    let total = 0;
+    for (const step of steps) {
+      const minutes = parseDurationToMinutes(step.duration || '');
+      if (minutes === null) return null;
+      total += minutes;
+    }
+    return total;
+  };
+
+  const buildTransportSummary = (schedule: Schedule): {
+    lines: string[];
+    totalLabel: string | null;
+    hasPlan: boolean;
+  } => {
+    const selectedPlan = getSelectedTransportPlan(schedule);
+    if (!selectedPlan || selectedPlan.steps.length === 0) {
+      return { lines: ['設定交通方式'], totalLabel: null, hasPlan: false };
+    }
+
+    const rawLines = selectedPlan.steps
+      .map((step) => [step.mode, step.duration].filter(Boolean).join(' ').trim())
+      .filter(Boolean);
+
+    if (rawLines.length === 0) {
+      return { lines: ['設定交通方式'], totalLabel: null, hasPlan: false };
+    }
+
+    const lines = rawLines.map((line, index) => (index === 0 ? line : `→ ${line}`));
+    const totalMinutes = getTotalMinutes(selectedPlan.steps);
+    const totalLabel = totalMinutes === null ? null : formatTotalMinutes(totalMinutes);
+
+    return { lines, totalLabel, hasPlan: true };
   };
 
   const handleOpenScheduleEdit = () => {
@@ -431,7 +494,8 @@ const Home = () => {
               {schedulesForDate.map((schedule, index) => {
                 const previousSchedule = index > 0 ? schedulesForDate[index - 1] : null;
                 const transportOwner = schedule;
-                const hasTransportPlan = !!getSelectedTransportPlan(transportOwner);
+                const transportSummary = buildTransportSummary(transportOwner);
+                const hasTransportPlan = transportSummary.hasPlan;
                 const shouldShowTransportCard = schedule.id !== firstTripScheduleId;
 
                 return (
@@ -440,14 +504,8 @@ const Home = () => {
                       <div className="relative pl-4 pb-2">
                         <div className="flex items-stretch gap-3">
                           <div className="w-10 flex justify-center">
-                            <div className="flex flex-col items-center justify-center gap-1.5">
-                              {Array.from({ length: 5 }).map((_, dashIndex) => (
-                                <span
-                                  key={dashIndex}
-                                  className="block h-2 w-[3px] rounded-full bg-[#9F856D]"
-                                  style={{ backgroundColor: '#B8A18B' }}
-                                />
-                              ))}
+                            <div className="flex h-full items-center justify-center py-1">
+                              <div className="h-full w-[3px] rounded-full bg-[repeating-linear-gradient(to_bottom,#B8A18B,#B8A18B_6px,transparent_6px,transparent_12px)]" />
                             </div>
                           </div>
                           <button
@@ -461,11 +519,23 @@ const Home = () => {
                             className="flex-1 rounded-[20px] border border-[#E5D8C7] px-4 py-2.5 text-left transition-transform active:scale-[0.99]"
                           >
                             <p className="text-sm font-bold text-[#6A503B]">
-                              {formatTransportSummary(transportOwner)}
+                              {transportSummary.lines.map((line, lineIndex) => (
+                                <span
+                                  key={`${transportOwner.id}-line-${lineIndex}`}
+                                  className="block leading-relaxed"
+                                >
+                                  {line}
+                                </span>
+                              ))}
                             </p>
-                            <p className="text-xs text-[#7A614C] mt-1">
-                              {hasTransportPlan ? '點擊編輯交通方案' : '點擊新增交通方案'}
-                            </p>
+                            {hasTransportPlan && (
+                              <div className="mt-2 rounded-[14px] bg-[#F1E6D8] px-3 py-2 text-xs font-bold text-[#6A503B]">
+                                總時間 {transportSummary.totalLabel ?? '無法計算'}
+                              </div>
+                            )}
+                            {!hasTransportPlan && (
+                              <p className="text-xs text-[#7A614C] mt-1">點擊新增交通方案</p>
+                            )}
                           </button>
                         </div>
                       </div>
