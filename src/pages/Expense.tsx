@@ -89,6 +89,16 @@ const Expense = () => {
     });
   }, [expenses, members, settlementsMap, exchangeRate]);
 
+  const unsettledExpenses = useMemo(
+    () => expenses.filter((expense) => !expense.isSettled),
+    [expenses]
+  );
+
+  const selectedUnsettledCount = useMemo(
+    () => unsettledExpenses.reduce((count, expense) => count + (selectedExpenseIds.has(expense.id) ? 1 : 0), 0),
+    [unsettledExpenses, selectedExpenseIds]
+  );
+
   const memberSpendingSummary = useMemo(() => {
     const createEqualSplit = (memberIds: string[], total: number): Record<string, number> => {
       const result: Record<string, number> = {};
@@ -259,9 +269,7 @@ const Expense = () => {
   };
 
   const selectAllUnsettledExpenses = () => {
-    const unsettledExpenseIds = expenses
-      .filter((expense) => !expense.isSettled)
-      .map((expense) => expense.id);
+    const unsettledExpenseIds = unsettledExpenses.map((expense) => expense.id);
     setSelectedExpenseIds(new Set(unsettledExpenseIds));
   };
 
@@ -270,7 +278,7 @@ const Expense = () => {
   };
 
   const handleBatchSettleExpenses = async () => {
-    if (selectedExpenseIds.size === 0) {
+    if (selectedUnsettledCount === 0) {
       alert('請先選擇要還款的項目');
       return;
     }
@@ -546,34 +554,37 @@ const Expense = () => {
                     清除選取
                   </button>
                 </div>
-                <div className="space-y-2 mb-2 max-h-44 overflow-y-auto pr-1">
-                  {expenses.map((expense) => (
-                    <label
-                      key={expense.id}
-                      className={`flex items-center gap-2 px-3 py-2 rounded-[14px] border ${
-                        expense.isSettled ? 'bg-brown/5 border-brown/10 opacity-60' : 'bg-white border-brown/10'
-                      }`}
-                    >
-                      <input
-                        type="checkbox"
-                        checked={selectedExpenseIds.has(expense.id)}
-                        disabled={expense.isSettled}
-                        onChange={() => toggleExpenseSelection(expense.id)}
-                        className="w-4 h-4 rounded accent-primary"
-                      />
-                      <span className="text-sm text-brown flex-1 truncate">{expense.description}</span>
-                      <span className="text-xs text-brown opacity-70">
-                        {expense.currency === 'JPY' ? '¥' : 'NT$'}{expense.amount.toLocaleString()}
-                      </span>
-                    </label>
-                  ))}
-                </div>
+                {unsettledExpenses.length === 0 ? (
+                  <div className="text-center text-xs text-brown/60 py-3">
+                    目前沒有未還款項目
+                  </div>
+                ) : (
+                  <div className="space-y-2 mb-2 max-h-44 overflow-y-auto pr-1">
+                    {unsettledExpenses.map((expense) => (
+                      <label
+                        key={expense.id}
+                        className="flex items-center gap-2 px-3 py-2 rounded-[14px] border bg-white border-brown/10"
+                      >
+                        <input
+                          type="checkbox"
+                          checked={selectedExpenseIds.has(expense.id)}
+                          onChange={() => toggleExpenseSelection(expense.id)}
+                          className="w-4 h-4 rounded accent-primary"
+                        />
+                        <span className="text-sm text-brown flex-1 truncate">{expense.description}</span>
+                        <span className="text-xs text-brown opacity-70">
+                          {expense.currency === 'JPY' ? '¥' : 'NT$'}{expense.amount.toLocaleString()}
+                        </span>
+                      </label>
+                    ))}
+                  </div>
+                )}
                 <button
                   className="w-full py-3 rounded-[18px] bg-primary text-white font-bold disabled:opacity-50"
                   onClick={handleBatchSettleExpenses}
-                  disabled={selectedExpenseIds.size === 0}
+                  disabled={selectedUnsettledCount === 0}
                 >
-                  批次標記已還款 ({selectedExpenseIds.size})
+                  批次標記已還款 ({selectedUnsettledCount})
                 </button>
               </div>
 

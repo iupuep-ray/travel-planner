@@ -23,6 +23,7 @@ const mockPlanningItems: PlanningItem[] = [
     content: '兌換日幣',
     isDone: false,
     assigneeIds: ['member-1'],
+    doneByIds: [],
     createdAt: '2024-03-01T10:10:00',
   },
   {
@@ -38,6 +39,7 @@ const mockPlanningItems: PlanningItem[] = [
     content: '轉接頭',
     isDone: false,
     assigneeIds: ['member-2'],
+    doneByIds: [],
     createdAt: '2024-03-01T11:05:00',
   },
   {
@@ -93,6 +95,7 @@ const mockPlanningItems: PlanningItem[] = [
     content: '泡麵',
     isDone: false,
     assigneeIds: ['member-1'],
+    doneByIds: [],
     relatedScheduleId: '8',
     createdAt: '2024-03-01T12:25:00',
   },
@@ -109,6 +112,7 @@ const mockPlanningItems: PlanningItem[] = [
     content: '明信片',
     isDone: false,
     assigneeIds: ['member-2', 'member-3'], // 多選範例
+    doneByIds: ['member-2'],
     createdAt: '2024-03-01T12:35:00',
   },
 ];

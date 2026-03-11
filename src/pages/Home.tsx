@@ -502,10 +502,10 @@ const Home = () => {
                   <div key={schedule.id}>
                     {shouldShowTransportCard && (
                       <div className="relative pl-4 pb-2">
-                        <div className="flex items-stretch gap-3">
+                        <div className="flex items-stretch gap-0">
                           <div className="w-10 flex justify-center">
                             <div className="flex h-full items-center justify-center py-1">
-                              <div className="h-full w-[3px] rounded-full bg-[repeating-linear-gradient(to_bottom,#B8A18B,#B8A18B_6px,transparent_6px,transparent_12px)]" />
+                              <div className="h-full w-[3px] translate-x-1 rounded-full bg-[repeating-linear-gradient(to_bottom,#B8A18B,#B8A18B_6px,transparent_6px,transparent_12px)]" />
                             </div>
                           </div>
                           <button
@@ -518,6 +518,11 @@ const Home = () => {
                             }
                             className="flex-1 rounded-[20px] border border-[#E5D8C7] px-4 py-2.5 text-left transition-transform active:scale-[0.99]"
                           >
+                            {hasTransportPlan && (
+                              <div className="mb-2 rounded-[14px] bg-[#F1E6D8] px-3 py-2 text-xs font-bold text-[#6A503B]">
+                                總時間 {transportSummary.totalLabel ?? '無法計算'}
+                              </div>
+                            )}
                             <p className="text-sm font-bold text-[#6A503B]">
                               {transportSummary.lines.map((line, lineIndex) => (
                                 <span
@@ -528,11 +533,6 @@ const Home = () => {
                                 </span>
                               ))}
                             </p>
-                            {hasTransportPlan && (
-                              <div className="mt-2 rounded-[14px] bg-[#F1E6D8] px-3 py-2 text-xs font-bold text-[#6A503B]">
-                                總時間 {transportSummary.totalLabel ?? '無法計算'}
-                              </div>
-                            )}
                             {!hasTransportPlan && (
                               <p className="text-xs text-[#7A614C] mt-1">點擊新增交通方案</p>
                             )}

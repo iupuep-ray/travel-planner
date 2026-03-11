@@ -110,6 +110,7 @@ export interface PlanningItem {
   content: string;
   isDone: boolean;
   assigneeIds?: string[]; // 改為多選陣列
+  doneByIds?: string[]; // 已完成的成員（個人完成）
   createdByAuthUid?: string; // 建立者帳號 UID（通知目標之一）
   notificationEnabled?: boolean; // 僅 Todo 使用
   notificationAt?: string; // 首次提醒時間（ISO 字串）

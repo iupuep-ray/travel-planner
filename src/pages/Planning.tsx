@@ -25,12 +25,13 @@ const tabs: TabConfig[] = [
 
 const Planning = () => {
   const [activeTab, setActiveTab] = useState<PlanningType>('todo');
-  const { items: planningItems, loading: planningLoading, createItem, editItem, removeItem, toggleItem } = usePlanning(activeTab);
+  const { items: planningItems, loading: planningLoading, createItem, editItem, removeItem } = usePlanning(activeTab);
   const { members, loading: membersLoading } = useMembers();
   const { schedules, loading: schedulesLoading } = useSchedules();
   const { user } = useAuth();
   const [showAddForm, setShowAddForm] = useState(false);
   const [editingItem, setEditingItem] = useState<PlanningItem | null>(null);
+  const [collapsedSections, setCollapsedSections] = useState<Record<string, boolean>>({});
 
   const loading = planningLoading || membersLoading || schedulesLoading;
 
@@ -51,6 +52,26 @@ const Planning = () => {
     return member?.avatar || getDefaultAvatar(memberId || member?.name || 'member');
   };
 
+  const memberSectionColors = useMemo(() => {
+    const palette = [
+      'hsl(210 60% 92%)', // blue
+      'hsl(140 55% 92%)', // green
+      'hsl(260 55% 92%)', // violet
+      'hsl(320 55% 92%)', // pink
+      'hsl(180 55% 92%)', // aqua
+      'hsl(90 55% 92%)', // lime
+    ];
+    const map = new Map<string, string>();
+    members.forEach((member, index) => {
+      map.set(member.id, palette[index % palette.length]);
+    });
+    return map;
+  }, [members]);
+
+  const getMemberSectionColor = (memberId: string): string => {
+    return memberSectionColors.get(memberId) || 'hsl(210 60% 92%)';
+  };
+
   const formatNotificationTime = (notificationAt?: string): string => {
     if (!notificationAt) return '';
     const date = new Date(notificationAt);
@@ -65,46 +86,89 @@ const Planning = () => {
   // 依類型篩選清單項目
   const filteredItems = planningItems.filter((item) => item.type === activeTab);
 
-  // 購物清單分組（依商店名稱）
-  const groupedShoppingItems = useMemo(() => {
-    if (activeTab !== 'shopping') return {};
-
-    const groups: Record<string, PlanningItem[]> = {
-      '未分類': [],
-    };
-
-    filteredItems.forEach((item) => {
-      if (item.relatedScheduleId) {
-        // 找到關聯的行程
-        const relatedSchedule = schedules.find((s) => s.id === item.relatedScheduleId);
-        if (relatedSchedule && relatedSchedule.type === 'shopping') {
-          const shopName = relatedSchedule.name;
-          if (!groups[shopName]) {
-            groups[shopName] = [];
-          }
-          groups[shopName].push(item);
-        } else {
-          groups['未分類'].push(item);
-        }
-      } else {
-        groups['未分類'].push(item);
+  const shoppingScheduleNameById = useMemo(() => {
+    const map = new Map<string, string>();
+    schedules.forEach((schedule) => {
+      if (schedule.type === 'shopping') {
+        map.set(schedule.id, schedule.name);
       }
     });
+    return map;
+  }, [schedules]);
 
-    // 移除空的未分類群組
-    if (groups['未分類'].length === 0) {
-      delete groups['未分類'];
+  const getDoneByIds = (item: PlanningItem): string[] => {
+    if (item.doneByIds && item.doneByIds.length > 0) return item.doneByIds;
+    if (item.isDone && item.assigneeIds && item.assigneeIds.length > 0) return item.assigneeIds;
+    return [];
+  };
+
+  const isMemberDone = (item: PlanningItem, memberId: string): boolean => {
+    const doneByIds = getDoneByIds(item);
+    return doneByIds.includes(memberId);
+  };
+
+  const getShopName = (item: PlanningItem): string => {
+    if (!item.relatedScheduleId) return '未分類';
+    return shoppingScheduleNameById.get(item.relatedScheduleId) || '未分類';
+  };
+
+  const groupItemsByShop = (items: PlanningItem[]): Record<string, PlanningItem[]> => {
+    const groups: Record<string, PlanningItem[]> = {};
+    items.forEach((item) => {
+      const shopName = getShopName(item);
+      if (!groups[shopName]) {
+        groups[shopName] = [];
+      }
+      groups[shopName].push(item);
+    });
+    return groups;
+  };
+
+  const memberSections = useMemo(
+    () =>
+      members.map((member) => ({
+        member,
+        items: filteredItems.filter((item) => item.assigneeIds?.includes(member.id)),
+      })),
+    [members, filteredItems]
+  );
+
+  const unassignedItems = useMemo(
+    () => filteredItems.filter((item) => !item.assigneeIds || item.assigneeIds.length === 0),
+    [filteredItems]
+  );
+
+  const toggleUnassignedDone = async (item: PlanningItem) => {
+    try {
+      await editItem(item.id, { isDone: !item.isDone });
+    } catch (error) {
+      console.error('切換完成狀態失敗:', error);
+      alert('切換完成狀態失敗，請稍後再試');
+    }
+  };
+
+  const toggleMemberDone = async (item: PlanningItem, memberId: string) => {
+    const assigneeIds = item.assigneeIds || [];
+    if (assigneeIds.length === 0) {
+      await toggleUnassignedDone(item);
+      return;
     }
 
-    return groups;
-  }, [activeTab, filteredItems, schedules]);
+    const doneBy = new Set(getDoneByIds(item));
+    if (doneBy.has(memberId)) {
+      doneBy.delete(memberId);
+    } else {
+      doneBy.add(memberId);
+    }
 
-  // 切換完成狀態
-  const toggleItemDone = async (itemId: string) => {
-    const item = planningItems.find((i) => i.id === itemId);
-    if (!item) return;
+    const nextDoneByIds = Array.from(doneBy);
+    const nextIsDone = assigneeIds.every((id) => doneBy.has(id));
+
     try {
-      await toggleItem(itemId, !item.isDone);
+      await editItem(item.id, {
+        doneByIds: nextDoneByIds,
+        isDone: nextIsDone,
+      });
     } catch (error) {
       console.error('切換完成狀態失敗:', error);
       alert('切換完成狀態失敗，請稍後再試');
@@ -130,6 +194,7 @@ const Planning = () => {
         isDone: false,
         createdByAuthUid: user?.uid,
         assigneeIds: data.assigneeIds,
+        doneByIds: [],
         notificationEnabled: activeTab === 'todo' ? !!data.notificationEnabled : false,
         notificationAt: activeTab === 'todo' ? data.notificationAt : undefined,
         relatedScheduleId: data.relatedScheduleId,
@@ -145,9 +210,17 @@ const Planning = () => {
   const handleEditItem = async (data: PlanningFormData) => {
     if (!editingItem) return;
     try {
+      const nextAssigneeIds = data.assigneeIds || [];
+      const normalizedDoneByIds = getDoneByIds(editingItem).filter((id) => nextAssigneeIds.includes(id));
+      const nextIsDone = nextAssigneeIds.length > 0
+        ? nextAssigneeIds.every((id) => normalizedDoneByIds.includes(id))
+        : editingItem.isDone;
+
       await editItem(editingItem.id, {
         content: data.content,
-        assigneeIds: data.assigneeIds,
+        assigneeIds: nextAssigneeIds,
+        doneByIds: nextAssigneeIds.length > 0 ? normalizedDoneByIds : [],
+        isDone: nextIsDone,
         notificationEnabled: editingItem.type === 'todo' ? !!data.notificationEnabled : false,
         notificationAt: editingItem.type === 'todo' ? data.notificationAt : undefined,
         relatedScheduleId: data.relatedScheduleId,
@@ -162,6 +235,209 @@ const Planning = () => {
   // 開啟編輯表單
   const openEditForm = (item: PlanningItem) => {
     setEditingItem(item);
+  };
+
+  const toggleSectionCollapsed = (sectionKey: string) => {
+    setCollapsedSections((prev) => ({
+      ...prev,
+      [sectionKey]: !prev[sectionKey],
+    }));
+  };
+
+  const getSectionDoneCount = (items: PlanningItem[], memberId?: string): number => {
+    if (items.length === 0) return 0;
+    if (!memberId) {
+      return items.filter((item) => item.isDone).length;
+    }
+    return items.filter((item) => isMemberDone(item, memberId)).length;
+  };
+
+  const renderItemList = (items: PlanningItem[], memberId?: string) => (
+    <div className="space-y-2">
+      {items.map((item) => {
+        const isRowDone = memberId ? isMemberDone(item, memberId) : item.isDone;
+        const toggleHandler = memberId
+          ? () => toggleMemberDone(item, memberId)
+          : () => toggleUnassignedDone(item);
+
+        return (
+          <div
+            key={`${memberId || 'unassigned'}-${item.id}`}
+            className={`rounded-[20px] shadow-soft p-4 transition-all ${
+              isRowDone ? 'bg-white/50' : 'bg-white'
+            }`}
+          >
+            <div className="flex items-center gap-3">
+              {/* Checkbox */}
+              <button
+                onClick={toggleHandler}
+                className={`flex-shrink-0 w-6 h-6 rounded-full border-2 flex items-center justify-center transition-all active:scale-95 ${
+                  isRowDone
+                    ? 'bg-primary border-primary'
+                    : 'border-brown/30 hover:border-primary'
+                }`}
+              >
+                {isRowDone && (
+                  <FontAwesomeIcon
+                    icon={['fas', ICON_NAMES.CHECK]}
+                    className="text-white text-xs"
+                  />
+                )}
+              </button>
+
+              {/* Content */}
+              <div className="flex-1 min-w-0">
+                <p
+                  className={`font-medium transition-all ${
+                    isRowDone
+                      ? 'text-brown opacity-40 line-through'
+                      : 'text-brown'
+                  }`}
+                >
+                  {item.content}
+                </p>
+                {/* Related Schedule or Assignees */}
+                <div className="flex items-center gap-2 mt-1 flex-wrap">
+                  {item.relatedScheduleId && (
+                    <span className="text-xs text-brown opacity-60 flex items-center gap-1">
+                      <FontAwesomeIcon icon={['fas', ICON_NAMES.MAP_LOCATION]} />
+                      來自行程
+                    </span>
+                  )}
+                  {item.assigneeIds && item.assigneeIds.length > 0 && (
+                    <div className="flex items-center gap-1 flex-wrap">
+                      {item.assigneeIds.map((assigneeId) => (
+                        <div key={assigneeId} className="flex items-center gap-1">
+                          <img
+                            src={getMemberAvatar(assigneeId)}
+                            alt={`${getMemberDisplayName(assigneeId)} 頭像`}
+                            className="w-4 h-4 rounded-full object-cover"
+                          />
+                          <span className="text-xs text-brown opacity-60">
+                            {getMemberDisplayName(assigneeId)}
+                          </span>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                  {item.type === 'todo' && item.notificationEnabled && item.notificationAt && (
+                    <span className="text-xs text-brown opacity-60 flex items-center gap-1">
+                      <FontAwesomeIcon icon={['fas', ICON_NAMES.BELL]} />
+                      {`提醒時間 ${formatNotificationTime(item.notificationAt)}`}
+                    </span>
+                  )}
+                </div>
+              </div>
+
+              {/* Action Buttons */}
+              {!item.relatedScheduleId && (
+                <div className="flex items-center gap-2">
+                  {/* Edit Button */}
+                  <button
+                    onClick={() => openEditForm(item)}
+                    className="flex-shrink-0 w-8 h-8 rounded-full bg-blue-100 text-blue-500 flex items-center justify-center transition-transform active:scale-95 hover:bg-blue-200"
+                  >
+                    <FontAwesomeIcon icon={['fas', ICON_NAMES.EDIT]} className="text-sm" />
+                  </button>
+                  {/* Delete Button */}
+                  <button
+                    onClick={() => {
+                      if (confirm(`確定要刪除「${item.content}」嗎？`)) {
+                        deleteItemHandler(item.id);
+                      }
+                    }}
+                    className="flex-shrink-0 w-8 h-8 rounded-full bg-red-100 text-red-500 flex items-center justify-center transition-transform active:scale-95 hover:bg-red-200"
+                  >
+                    <FontAwesomeIcon icon={['fas', ICON_NAMES.DELETE]} className="text-sm" />
+                  </button>
+                </div>
+              )}
+            </div>
+          </div>
+        );
+      })}
+    </div>
+  );
+
+  const renderShoppingGroups = (items: PlanningItem[], memberId?: string) => {
+    const groups = groupItemsByShop(items);
+    return (
+      <div className="space-y-4">
+        {Object.entries(groups).map(([shopName, groupItems]) => (
+          <div key={`${memberId || 'unassigned'}-${shopName}`}>
+            <div className="flex items-center gap-2 mb-2 px-2">
+              <FontAwesomeIcon
+                icon={['fas', shopName === '未分類' ? ICON_NAMES.SHOPPING : ICON_NAMES.MAP_LOCATION]}
+                className="text-brown opacity-40 text-sm"
+              />
+              <h3 className="text-sm font-bold text-brown opacity-60">{shopName}</h3>
+              <div className="flex-1 h-px bg-brown/10"></div>
+            </div>
+            {renderItemList(groupItems, memberId)}
+          </div>
+        ))}
+      </div>
+    );
+  };
+
+  const renderSection = (
+    label: string,
+    items: PlanningItem[],
+    memberId?: string,
+    avatarUrl?: string,
+    borderColor?: string
+  ) => {
+    const doneCount = getSectionDoneCount(items, memberId);
+    const sectionKey = `${activeTab}:${memberId || 'unassigned'}`;
+    const isCollapsed = collapsedSections[sectionKey] || false;
+    const sectionBg = borderColor || '#F2F6FF';
+
+    return (
+      <div
+        className="relative rounded-[28px] px-3 pb-3 pt-5"
+        style={{ backgroundColor: sectionBg }}
+      >
+        <button
+          type="button"
+          onClick={() => toggleSectionCollapsed(sectionKey)}
+          className="relative w-full flex items-center gap-2 mb-2 px-2 text-left"
+          aria-expanded={!isCollapsed}
+        >
+          {avatarUrl ? (
+            <img
+              src={avatarUrl}
+              alt={`${label} 頭像`}
+              className="w-6 h-6 rounded-full object-cover"
+            />
+          ) : (
+            <div className="w-6 h-6 rounded-full bg-brown/10 text-brown flex items-center justify-center text-xs">
+              <FontAwesomeIcon icon={['fas', ICON_NAMES.LIST_CHECK]} />
+            </div>
+          )}
+          <h3 className="text-sm font-bold text-brown">{label}</h3>
+          {items.length > 0 && (
+            <span className="text-xs text-brown/60">{doneCount}/{items.length} 已完成</span>
+          )}
+          <div className="flex-1 h-px bg-brown/10"></div>
+          <FontAwesomeIcon
+            icon={['fas', ICON_NAMES.CHEVRON_RIGHT]}
+            className={`text-brown/60 text-xs transition-transform ${isCollapsed ? '' : 'rotate-90'}`}
+          />
+        </button>
+
+        {!isCollapsed && (
+          <>
+            {items.length === 0 ? (
+              <div className="text-xs text-brown/50 px-2">目前沒有指派項目</div>
+            ) : activeTab === 'shopping' ? (
+              renderShoppingGroups(items, memberId)
+            ) : (
+              renderItemList(items, memberId)
+            )}
+          </>
+        )}
+      </div>
+    );
   };
 
   return (
@@ -227,205 +503,24 @@ const Planning = () => {
               <p className="text-brown opacity-60 mb-2">尚無{tabs.find((t) => t.key === activeTab)?.label}項目</p>
               <p className="text-brown opacity-40 text-sm">點擊下方按鈕新增項目</p>
             </div>
-          ) : activeTab === 'shopping' ? (
-            // 購物清單 - 分組顯示
-            <div className="space-y-4">
-              {Object.entries(groupedShoppingItems).map(([shopName, items]) => (
-                <div key={shopName}>
-                  {/* 商店分類標題 */}
-                  <div className="flex items-center gap-2 mb-2 px-2">
-                    <FontAwesomeIcon
-                      icon={['fas', shopName === '未分類' ? ICON_NAMES.SHOPPING : ICON_NAMES.MAP_LOCATION]}
-                      className="text-brown opacity-40 text-sm"
-                    />
-                    <h3 className="text-sm font-bold text-brown opacity-60">{shopName}</h3>
-                    <div className="flex-1 h-px bg-brown/10"></div>
-                  </div>
-
-                  {/* 商店的購物項目 */}
-                  <div className="space-y-2">
-                    {items.map((item) => (
-                      <div
-                        key={item.id}
-                        className={`rounded-[20px] shadow-soft p-4 transition-all ${
-                          item.isDone ? 'bg-white/50' : 'bg-white'
-                        }`}
-                      >
-                        <div className="flex items-center gap-3">
-                          {/* Checkbox */}
-                          <button
-                            onClick={() => toggleItemDone(item.id)}
-                            className={`flex-shrink-0 w-6 h-6 rounded-full border-2 flex items-center justify-center transition-all active:scale-95 ${
-                              item.isDone
-                                ? 'bg-primary border-primary'
-                                : 'border-brown/30 hover:border-primary'
-                            }`}
-                          >
-                            {item.isDone && (
-                              <FontAwesomeIcon
-                                icon={['fas', ICON_NAMES.CHECK]}
-                                className="text-white text-xs"
-                              />
-                            )}
-                          </button>
-
-                          {/* Content */}
-                          <div className="flex-1 min-w-0">
-                            <p
-                              className={`font-medium transition-all ${
-                                item.isDone
-                                  ? 'text-brown opacity-40 line-through'
-                                  : 'text-brown'
-                              }`}
-                            >
-                              {item.content}
-                            </p>
-                            {item.assigneeIds && item.assigneeIds.length > 0 && (
-                              <div className="flex items-center gap-1 mt-1 flex-wrap">
-                                {item.assigneeIds.map((assigneeId) => (
-                                  <div key={assigneeId} className="flex items-center gap-1">
-                                    <img
-                                      src={getMemberAvatar(assigneeId)}
-                                      alt={`${getMemberDisplayName(assigneeId)} 頭像`}
-                                      className="w-4 h-4 rounded-full object-cover"
-                                    />
-                                    <span className="text-xs text-brown opacity-60">
-                                      {getMemberDisplayName(assigneeId)}
-                                    </span>
-                                  </div>
-                                ))}
-                              </div>
-                            )}
-                          </div>
-
-                          {/* Action Buttons */}
-                          {!item.relatedScheduleId && (
-                            <div className="flex items-center gap-2">
-                              {/* Edit Button */}
-                              <button
-                                onClick={() => openEditForm(item)}
-                                className="flex-shrink-0 w-8 h-8 rounded-full bg-blue-100 text-blue-500 flex items-center justify-center transition-transform active:scale-95 hover:bg-blue-200"
-                              >
-                                <FontAwesomeIcon icon={['fas', ICON_NAMES.EDIT]} className="text-sm" />
-                              </button>
-                              {/* Delete Button */}
-                              <button
-                                onClick={() => {
-                                  if (confirm(`確定要刪除「${item.content}」嗎？`)) {
-                                    deleteItemHandler(item.id);
-                                  }
-                                }}
-                                className="flex-shrink-0 w-8 h-8 rounded-full bg-red-100 text-red-500 flex items-center justify-center transition-transform active:scale-95 hover:bg-red-200"
-                              >
-                                <FontAwesomeIcon icon={['fas', ICON_NAMES.DELETE]} className="text-sm" />
-                              </button>
-                            </div>
-                          )}
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              ))}
-            </div>
           ) : (
-            // Todo 和行李清單 - 一般列表顯示
-            <div className="space-y-2">
-              {filteredItems.map((item) => (
-                <div
-                  key={item.id}
-                  className={`rounded-[20px] shadow-soft p-4 transition-all ${
-                    item.isDone ? 'bg-white/50' : 'bg-white'
-                  }`}
-                >
-                  <div className="flex items-center gap-3">
-                    {/* Checkbox */}
-                    <button
-                      onClick={() => toggleItemDone(item.id)}
-                      className={`flex-shrink-0 w-6 h-6 rounded-full border-2 flex items-center justify-center transition-all active:scale-95 ${
-                        item.isDone
-                          ? 'bg-primary border-primary'
-                          : 'border-brown/30 hover:border-primary'
-                      }`}
-                    >
-                      {item.isDone && (
-                        <FontAwesomeIcon
-                          icon={['fas', ICON_NAMES.CHECK]}
-                          className="text-white text-xs"
-                        />
-                      )}
-                    </button>
-
-                    {/* Content */}
-                    <div className="flex-1 min-w-0">
-                      <p
-                        className={`font-medium transition-all ${
-                          item.isDone
-                            ? 'text-brown opacity-40 line-through'
-                            : 'text-brown'
-                        }`}
-                      >
-                        {item.content}
-                      </p>
-                      {/* Related Schedule or Assignees */}
-                      <div className="flex items-center gap-2 mt-1 flex-wrap">
-                        {item.relatedScheduleId && (
-                          <span className="text-xs text-brown opacity-60 flex items-center gap-1">
-                            <FontAwesomeIcon icon={['fas', ICON_NAMES.MAP_LOCATION]} />
-                            來自行程
-                          </span>
-                        )}
-                        {item.assigneeIds && item.assigneeIds.length > 0 && (
-                          <div className="flex items-center gap-1 flex-wrap">
-                            {item.assigneeIds.map((assigneeId) => (
-                              <div key={assigneeId} className="flex items-center gap-1">
-                                <img
-                                  src={getMemberAvatar(assigneeId)}
-                                  alt={`${getMemberDisplayName(assigneeId)} 頭像`}
-                                  className="w-4 h-4 rounded-full object-cover"
-                                />
-                                <span className="text-xs text-brown opacity-60">
-                                  {getMemberDisplayName(assigneeId)}
-                                </span>
-                              </div>
-                            ))}
-                          </div>
-                        )}
-                        {item.type === 'todo' && item.notificationEnabled && item.notificationAt && (
-                          <span className="text-xs text-brown opacity-60 flex items-center gap-1">
-                            <FontAwesomeIcon icon={['fas', ICON_NAMES.BELL]} />
-                            {`提醒時間 ${formatNotificationTime(item.notificationAt)}`}
-                          </span>
-                        )}
-                      </div>
-                    </div>
-
-                    {/* Action Buttons */}
-                    {!item.relatedScheduleId && (
-                      <div className="flex items-center gap-2">
-                        {/* Edit Button */}
-                        <button
-                          onClick={() => openEditForm(item)}
-                          className="flex-shrink-0 w-8 h-8 rounded-full bg-blue-100 text-blue-500 flex items-center justify-center transition-transform active:scale-95 hover:bg-blue-200"
-                        >
-                          <FontAwesomeIcon icon={['fas', ICON_NAMES.EDIT]} className="text-sm" />
-                        </button>
-                        {/* Delete Button */}
-                        <button
-                          onClick={() => {
-                            if (confirm(`確定要刪除「${item.content}」嗎？`)) {
-                              deleteItemHandler(item.id);
-                            }
-                          }}
-                          className="flex-shrink-0 w-8 h-8 rounded-full bg-red-100 text-red-500 flex items-center justify-center transition-transform active:scale-95 hover:bg-red-200"
-                        >
-                          <FontAwesomeIcon icon={['fas', ICON_NAMES.DELETE]} className="text-sm" />
-                        </button>
-                      </div>
-                    )}
-                  </div>
+            <div className="space-y-6">
+              {memberSections.map(({ member, items }) => (
+                <div key={member.id}>
+                  {renderSection(
+                    getMemberDisplayName(member.id),
+                    items,
+                    member.id,
+                    getMemberAvatar(member.id),
+                    getMemberSectionColor(member.id)
+                  )}
                 </div>
               ))}
+              {unassignedItems.length > 0 && (
+                <div>
+                  {renderSection('未指派', unassignedItems, undefined, undefined, '#F1F5F9')}
+                </div>
+              )}
             </div>
           )}
         </div>
