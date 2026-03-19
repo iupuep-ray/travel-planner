@@ -18,6 +18,7 @@ export interface PlanningFormData {
   assigneeIds?: string[]; // 改為多選陣列
   notificationEnabled?: boolean;
   notificationAt?: string;
+  plannedCompletionAt?: string; // 預計完成時間（ISO 字串）
   relatedScheduleId?: string; // 關聯的購物行程 ID
 }
 
@@ -63,6 +64,25 @@ const toIsoFromLocalDateAndTime = (date: string, time: string): string => {
   return parsed.toISOString();
 };
 
+const toLocalDateTimeInputValue = (iso?: string): string => {
+  if (!iso) return '';
+  const parsed = new Date(iso);
+  if (Number.isNaN(parsed.getTime())) return '';
+  const year = parsed.getFullYear();
+  const month = String(parsed.getMonth() + 1).padStart(2, '0');
+  const day = String(parsed.getDate()).padStart(2, '0');
+  const hour = String(parsed.getHours()).padStart(2, '0');
+  const minute = String(parsed.getMinutes()).padStart(2, '0');
+  return `${year}-${month}-${day}T${hour}:${minute}`;
+};
+
+const toIsoFromLocalDateTime = (value: string): string => {
+  if (!value) return '';
+  const parsed = new Date(value);
+  if (Number.isNaN(parsed.getTime())) return '';
+  return parsed.toISOString();
+};
+
 const buildQuarterHourOptions = () => {
   const options: string[] = [];
   for (let hour = 0; hour < 24; hour += 1) {
@@ -79,6 +99,9 @@ const QUARTER_HOUR_OPTIONS = buildQuarterHourOptions();
 
 const PlanningForm = ({ type, members, initialData, onSubmit, onCancel }: PlanningFormProps) => {
   const initialNotification = toLocalDateAndTime(initialData?.notificationAt);
+  const [plannedCompletionLocal, setPlannedCompletionLocal] = useState(
+    toLocalDateTimeInputValue(initialData?.plannedCompletionAt)
+  );
   const [formData, setFormData] = useState<PlanningFormData>(
     initialData || {
       content: '',
@@ -113,6 +136,17 @@ const PlanningForm = ({ type, members, initialData, onSubmit, onCancel }: Planni
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     const normalizedData = { ...formData };
+
+    if (plannedCompletionLocal) {
+      const normalizedPlannedCompletionAt = toIsoFromLocalDateTime(plannedCompletionLocal);
+      if (!normalizedPlannedCompletionAt) {
+        alert('預計完成時間格式不正確');
+        return;
+      }
+      normalizedData.plannedCompletionAt = normalizedPlannedCompletionAt;
+    } else {
+      normalizedData.plannedCompletionAt = undefined;
+    }
 
     if (type === 'todo' && normalizedData.notificationEnabled) {
       if (!notificationDate || !notificationTime) {
@@ -208,6 +242,17 @@ const PlanningForm = ({ type, members, initialData, onSubmit, onCancel }: Planni
               );
             })}
           </div>
+        </div>
+
+        {/* Planned Completion Time */}
+        <div className="mb-6">
+          <label className="block text-sm font-bold text-brown mb-2">預計完成時間（選填）</label>
+          <input
+            type="datetime-local"
+            value={plannedCompletionLocal}
+            onChange={(e) => setPlannedCompletionLocal(e.target.value)}
+            className="w-full px-4 py-3 rounded-[20px] bg-white border-2 border-cream focus:border-primary outline-none transition-colors text-brown"
+          />
         </div>
 
         {type === 'todo' && (

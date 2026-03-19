@@ -8,6 +8,7 @@ const mockPlanningItems: PlanningItem[] = [
     type: 'todo',
     content: '申請日本簽證',
     isDone: true,
+    plannedCompletionAt: '2024-03-05T12:00:00',
     createdAt: '2024-03-01T10:00:00',
   },
   {
@@ -31,6 +32,7 @@ const mockPlanningItems: PlanningItem[] = [
     type: 'luggage',
     content: '護照',
     isDone: false,
+    plannedCompletionAt: '2024-03-20T18:00:00',
     createdAt: '2024-03-01T11:00:00',
   },
   {

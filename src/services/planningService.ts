@@ -94,6 +94,7 @@ export const subscribeToPlanningItems = (
           createdByAuthUid: data.createdByAuthUid,
           notificationEnabled: data.notificationEnabled,
           notificationAt: data.notificationAt,
+          plannedCompletionAt: data.plannedCompletionAt,
           relatedScheduleId: data.relatedScheduleId,
           createdAt: data.createdAt?.toDate().toISOString() || new Date().toISOString(),
         };
@@ -129,6 +130,7 @@ export const subscribeToAllPlanningItems = (
           createdByAuthUid: data.createdByAuthUid,
           notificationEnabled: data.notificationEnabled,
           notificationAt: data.notificationAt,
+          plannedCompletionAt: data.plannedCompletionAt,
           relatedScheduleId: data.relatedScheduleId,
           createdAt: data.createdAt?.toDate().toISOString() || new Date().toISOString(),
         };

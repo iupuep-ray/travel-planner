@@ -114,6 +114,7 @@ export interface PlanningItem {
   createdByAuthUid?: string; // 建立者帳號 UID（通知目標之一）
   notificationEnabled?: boolean; // 僅 Todo 使用
   notificationAt?: string; // 首次提醒時間（ISO 字串）
+  plannedCompletionAt?: string; // 預計完成時間（ISO 字串）
   relatedScheduleId?: string; // 關聯的購物行程 ID
   createdAt: string;
 }

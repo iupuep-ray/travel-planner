@@ -72,9 +72,9 @@ const Planning = () => {
     return memberSectionColors.get(memberId) || 'hsl(210 60% 92%)';
   };
 
-  const formatNotificationTime = (notificationAt?: string): string => {
-    if (!notificationAt) return '';
-    const date = new Date(notificationAt);
+  const formatDateTime = (value?: string): string => {
+    if (!value) return '';
+    const date = new Date(value);
     if (Number.isNaN(date.getTime())) return '';
     const month = String(date.getMonth() + 1).padStart(2, '0');
     const day = String(date.getDate()).padStart(2, '0');
@@ -82,6 +82,8 @@ const Planning = () => {
     const minute = String(date.getMinutes()).padStart(2, '0');
     return `${month}/${day} ${hour}:${minute}`;
   };
+
+  const formatNotificationTime = (notificationAt?: string): string => formatDateTime(notificationAt);
 
   // 依類型篩選清單項目
   const filteredItems = planningItems.filter((item) => item.type === activeTab);
@@ -197,6 +199,7 @@ const Planning = () => {
         doneByIds: [],
         notificationEnabled: activeTab === 'todo' ? !!data.notificationEnabled : false,
         notificationAt: activeTab === 'todo' ? data.notificationAt : undefined,
+        plannedCompletionAt: data.plannedCompletionAt,
         relatedScheduleId: data.relatedScheduleId,
       });
       setShowAddForm(false);
@@ -223,6 +226,7 @@ const Planning = () => {
         isDone: nextIsDone,
         notificationEnabled: editingItem.type === 'todo' ? !!data.notificationEnabled : false,
         notificationAt: editingItem.type === 'todo' ? data.notificationAt : undefined,
+        plannedCompletionAt: data.plannedCompletionAt,
         relatedScheduleId: data.relatedScheduleId,
       });
       setEditingItem(null);
@@ -252,6 +256,25 @@ const Planning = () => {
     return items.filter((item) => isMemberDone(item, memberId)).length;
   };
 
+  const splitItemsByDone = (
+    items: PlanningItem[],
+    memberId?: string
+  ): { doneItems: PlanningItem[]; pendingItems: PlanningItem[] } => {
+    const doneItems: PlanningItem[] = [];
+    const pendingItems: PlanningItem[] = [];
+
+    items.forEach((item) => {
+      const isItemDone = memberId ? isMemberDone(item, memberId) : item.isDone;
+      if (isItemDone) {
+        doneItems.push(item);
+      } else {
+        pendingItems.push(item);
+      }
+    });
+
+    return { doneItems, pendingItems };
+  };
+
   const renderItemList = (items: PlanningItem[], memberId?: string) => (
     <div className="space-y-2">
       {items.map((item) => {
@@ -259,6 +282,13 @@ const Planning = () => {
         const toggleHandler = memberId
           ? () => toggleMemberDone(item, memberId)
           : () => toggleUnassignedDone(item);
+        const plannedCompletionText = formatDateTime(item.plannedCompletionAt);
+        const isPlannedOverdue = (() => {
+          if (!item.plannedCompletionAt) return false;
+          const plannedTime = new Date(item.plannedCompletionAt).getTime();
+          if (Number.isNaN(plannedTime)) return false;
+          return Date.now() > plannedTime;
+        })();
 
         return (
           <div
@@ -297,7 +327,7 @@ const Planning = () => {
                   {item.content}
                 </p>
                 {/* Related Schedule or Assignees */}
-                <div className="flex items-center gap-2 mt-1 flex-wrap">
+                <div className="flex items-center gap-2 mt-3 flex-wrap">
                   {item.relatedScheduleId && (
                     <span className="text-xs text-brown opacity-60 flex items-center gap-1">
                       <FontAwesomeIcon icon={['fas', ICON_NAMES.MAP_LOCATION]} />
@@ -327,6 +357,18 @@ const Planning = () => {
                     </span>
                   )}
                 </div>
+                {plannedCompletionText && (
+                  <div className="flex items-center gap-2 mt-3">
+                    <span
+                      className={`text-xs flex items-center gap-1 ${
+                        isPlannedOverdue ? 'text-rose-500/80' : 'text-brown opacity-60'
+                      }`}
+                    >
+                      <FontAwesomeIcon icon={['fas', ICON_NAMES.CALENDAR]} />
+                      {`預計完成 ${plannedCompletionText}`}
+                    </span>
+                  </div>
+                )}
               </div>
 
               {/* Action Buttons */}
@@ -388,9 +430,28 @@ const Planning = () => {
     borderColor?: string
   ) => {
     const doneCount = getSectionDoneCount(items, memberId);
+    const { doneItems, pendingItems } = splitItemsByDone(items, memberId);
     const sectionKey = `${activeTab}:${memberId || 'unassigned'}`;
     const isCollapsed = collapsedSections[sectionKey] || false;
     const sectionBg = borderColor || '#F2F6FF';
+    const emptyLabel = memberId ? '目前沒有指派項目' : '目前沒有項目';
+
+    const renderStatusGroup = (title: string, groupItems: PlanningItem[], emptyText: string) => (
+      <div className="space-y-2">
+        <div className="flex items-center gap-2 px-2">
+          <span className="text-xs font-bold text-brown/70">{title}</span>
+          <span className="text-xs text-brown/50">{groupItems.length}</span>
+          <div className="flex-1 h-px bg-brown/10"></div>
+        </div>
+        {groupItems.length === 0 ? (
+          <div className="text-xs text-brown/50 px-2">{emptyText}</div>
+        ) : activeTab === 'shopping' ? (
+          renderShoppingGroups(groupItems, memberId)
+        ) : (
+          renderItemList(groupItems, memberId)
+        )}
+      </div>
+    );
 
     return (
       <div
@@ -428,11 +489,12 @@ const Planning = () => {
         {!isCollapsed && (
           <>
             {items.length === 0 ? (
-              <div className="text-xs text-brown/50 px-2">目前沒有指派項目</div>
-            ) : activeTab === 'shopping' ? (
-              renderShoppingGroups(items, memberId)
+              <div className="text-xs text-brown/50 px-2">{emptyLabel}</div>
             ) : (
-              renderItemList(items, memberId)
+              <div className="space-y-4">
+                {renderStatusGroup('未完成', pendingItems, '目前沒有未完成項目')}
+                {renderStatusGroup('已完成', doneItems, '目前沒有已完成項目')}
+              </div>
             )}
           </>
         )}
@@ -557,6 +619,7 @@ const Planning = () => {
                 assigneeIds: editingItem.assigneeIds || [],
                 notificationEnabled: editingItem.notificationEnabled || false,
                 notificationAt: editingItem.notificationAt,
+                plannedCompletionAt: editingItem.plannedCompletionAt,
               }}
               onSubmit={handleEditItem}
               onCancel={() => setEditingItem(null)}
