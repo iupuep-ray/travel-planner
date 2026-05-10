@@ -112,16 +112,21 @@ const ScheduleForm = ({ type, onSubmit, onCancel, editingSchedule }: ScheduleFor
 
       const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
-  
+
         // Convert Date objects back to string for onSubmit
-        const submissionData = {
-          ...formData,
-          checkIn: formData.checkIn instanceof Date ? formatDate(formData.checkIn) : '',
-          checkOut: formData.checkOut instanceof Date ? formatDate(formData.checkOut) : '',
-          startDateTime: formData.startDateTime instanceof Date ? formatLocalDateTime(formData.startDateTime) : '',
-          endDateTime: formData.endDateTime instanceof Date ? formatLocalDateTime(formData.endDateTime) : '',
+        const submissionData: ScheduleFormSubmitData = {
+          name: formData.name,
+          address: formData.address,
+          checkIn: formData.checkIn instanceof Date ? formatDate(formData.checkIn) : undefined,
+          checkOut: formData.checkOut instanceof Date ? formatDate(formData.checkOut) : undefined,
+          startDateTime: formData.startDateTime instanceof Date ? formatLocalDateTime(formData.startDateTime) : undefined,
+          endDateTime: formData.endDateTime instanceof Date ? formatLocalDateTime(formData.endDateTime) : undefined,
+          url: formData.url,
+          notes: formData.notes,
+          shoppingItems: formData.shoppingItems,
+          images: formData.images || [],
         };
-  
+
         // 如果有新上傳的圖片,先上傳圖片
         if (imageFiles.length > 0) {
           try {
@@ -129,7 +134,7 @@ const ScheduleForm = ({ type, onSubmit, onCancel, editingSchedule }: ScheduleFor
             const tempId = editingSchedule?.id || `temp_${Date.now()}`;
             const uploadPromises = imageFiles.map(file => uploadScheduleImage(file, tempId));
             const uploadedUrls = await Promise.all(uploadPromises);
-  
+
             // 合併已有的圖片和新上傳的圖片
             const allImages = [...(submissionData.images || []), ...uploadedUrls];
             onSubmit({ ...submissionData, images: allImages });

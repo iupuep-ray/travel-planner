@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { ICON_NAMES } from '@/utils/fontawesome';
 
@@ -10,6 +10,14 @@ interface ImageLightboxProps {
 
 const ImageLightbox = ({ images, initialIndex, onClose }: ImageLightboxProps) => {
   const [currentIndex, setCurrentIndex] = useState(initialIndex);
+
+  const goToPrevious = useCallback(() => {
+    setCurrentIndex((prev) => (prev === 0 ? images.length - 1 : prev - 1));
+  }, [images.length]);
+
+  const goToNext = useCallback(() => {
+    setCurrentIndex((prev) => (prev === images.length - 1 ? 0 : prev + 1));
+  }, [images.length]);
 
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
@@ -29,15 +37,7 @@ const ImageLightbox = ({ images, initialIndex, onClose }: ImageLightboxProps) =>
       document.removeEventListener('keydown', handleKeyDown);
       document.body.style.overflow = 'unset';
     };
-  }, [currentIndex, images.length]);
-
-  const goToPrevious = () => {
-    setCurrentIndex((prev) => (prev === 0 ? images.length - 1 : prev - 1));
-  };
-
-  const goToNext = () => {
-    setCurrentIndex((prev) => (prev === images.length - 1 ? 0 : prev + 1));
-  };
+  }, [onClose, goToPrevious, goToNext]);
 
   return (
     <div
