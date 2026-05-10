@@ -394,19 +394,24 @@ const TransportPlanSheet = ({
                               <img
                                 src={imageUrl}
                                 alt={`圖片 ${index + 1}`}
-                                className="w-full h-full object-cover cursor-pointer"
-                                onClick={() => openLightbox(step.images || [], index)}
+                                className="w-full h-full object-cover"
                               />
-                              <div className="absolute inset-0 bg-black bg-opacity-0 group-hover:bg-opacity-20 transition-all flex items-center justify-center">
+                              <div
+                                className="absolute inset-0 bg-black bg-opacity-0 group-hover:bg-opacity-20 transition-all flex items-center justify-center cursor-pointer"
+                                onClick={() => openLightbox(step.images || [], index)}
+                              >
                                 <FontAwesomeIcon
                                   icon={['fas', ICON_NAMES.SEARCH_PLUS]}
-                                  className="text-white text-xl opacity-0 group-hover:opacity-100 transition-opacity"
+                                  className="text-white text-xl opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none"
                                 />
                               </div>
                               <button
                                 type="button"
-                                onClick={() => removeImage(plan.id, step.id, index)}
-                                className="absolute top-1 right-1 w-6 h-6 rounded-full bg-red-500 text-white flex items-center justify-center text-xs transition-transform active:scale-95"
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  removeImage(plan.id, step.id, index);
+                                }}
+                                className="absolute top-1 right-1 w-6 h-6 rounded-full bg-red-500 text-white flex items-center justify-center text-xs transition-transform active:scale-95 z-10"
                               >
                                 <FontAwesomeIcon icon={['fas', ICON_NAMES.CLOSE]} />
                               </button>
