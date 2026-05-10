@@ -234,7 +234,18 @@ const Home = () => {
     hasInitializedSelectedDate.current = true;
   }, [travelDates]);
 
-  const getSelectedTransportPlan = (schedule: Schedule): TransportPlan | undefined => {
+  const getSelectedTransportPlan = (schedule: Schedule, fromScheduleId: string | null = null): TransportPlan | undefined => {
+    // 新版格式：從 transportConnections 取得
+    if (schedule.transportConnections) {
+      const connectionKey = fromScheduleId || 'start';
+      const connection = schedule.transportConnections[connectionKey];
+      if (connection) {
+        const plans = connection.transportPlans || [];
+        return plans.find((plan) => plan.id === connection.selectedTransportPlanId) || plans[0];
+      }
+    }
+
+    // 舊版格式（向下相容）
     const plans = schedule.transportPlans || [];
     return plans.find((plan) => plan.id === schedule.selectedTransportPlanId) || plans[0];
   };
@@ -288,12 +299,12 @@ const Home = () => {
     return total;
   };
 
-  const buildTransportSummary = (schedule: Schedule): {
+  const buildTransportSummary = (schedule: Schedule, fromScheduleId: string | null = null): {
     lines: string[];
     totalLabel: string | null;
     hasPlan: boolean;
   } => {
-    const selectedPlan = getSelectedTransportPlan(schedule);
+    const selectedPlan = getSelectedTransportPlan(schedule, fromScheduleId);
     if (!selectedPlan || selectedPlan.steps.length === 0) {
       return { lines: ['設定交通方式'], totalLabel: null, hasPlan: false };
     }
@@ -494,7 +505,8 @@ const Home = () => {
               {schedulesForDate.map((schedule, index) => {
                 const previousSchedule = index > 0 ? schedulesForDate[index - 1] : null;
                 const transportOwner = schedule;
-                const transportSummary = buildTransportSummary(transportOwner);
+                const fromScheduleId = previousSchedule?.id || null;
+                const transportSummary = buildTransportSummary(transportOwner, fromScheduleId);
                 const hasTransportPlan = transportSummary.hasPlan;
                 const shouldShowTransportCard = schedule.id !== firstTripScheduleId;
 
@@ -584,22 +596,52 @@ const Home = () => {
           isOpen={transportEditingContext !== null}
           onClose={() => setTransportEditingContext(null)}
         >
-          {transportEditingContext && (
-            <TransportPlanSheet
-              fromSchedule={transportEditingContext.fromSchedule}
-              toSchedule={transportEditingContext.ownerSchedule}
-              initialPlans={transportEditingContext.ownerSchedule.transportPlans}
-              initialSelectedPlanId={transportEditingContext.ownerSchedule.selectedTransportPlanId}
-              onCancel={() => setTransportEditingContext(null)}
-              onSave={async ({ transportPlans, selectedTransportPlanId }) => {
-                await editSchedule(transportEditingContext.ownerSchedule.id, {
-                  transportPlans,
-                  selectedTransportPlanId: selectedTransportPlanId ?? null,
-                });
-                setTransportEditingContext(null);
-              }}
-            />
-          )}
+          {transportEditingContext && (() => {
+            const fromScheduleId = transportEditingContext.fromSchedule?.id || null;
+            const connectionKey = fromScheduleId || 'start';
+            const ownerSchedule = transportEditingContext.ownerSchedule;
+
+            // 從新格式或舊格式取得初始資料
+            let initialPlans: TransportPlan[] = [];
+            let initialSelectedPlanId: string | null | undefined = undefined;
+
+            if (ownerSchedule.transportConnections?.[connectionKey]) {
+              const connection = ownerSchedule.transportConnections[connectionKey];
+              initialPlans = connection.transportPlans || [];
+              initialSelectedPlanId = connection.selectedTransportPlanId;
+            } else {
+              // 向下相容舊格式
+              initialPlans = ownerSchedule.transportPlans || [];
+              initialSelectedPlanId = ownerSchedule.selectedTransportPlanId;
+            }
+
+            return (
+              <TransportPlanSheet
+                fromSchedule={transportEditingContext.fromSchedule}
+                toSchedule={ownerSchedule}
+                initialPlans={initialPlans}
+                initialSelectedPlanId={initialSelectedPlanId}
+                onCancel={() => setTransportEditingContext(null)}
+                onSave={async ({ transportPlans, selectedTransportPlanId }) => {
+                  // 使用新格式儲存
+                  const existingConnections = ownerSchedule.transportConnections || {};
+                  const updatedConnections = {
+                    ...existingConnections,
+                    [connectionKey]: {
+                      fromScheduleId,
+                      transportPlans,
+                      selectedTransportPlanId: selectedTransportPlanId ?? null,
+                    },
+                  };
+
+                  await editSchedule(ownerSchedule.id, {
+                    transportConnections: updatedConnections,
+                  });
+                  setTransportEditingContext(null);
+                }}
+              />
+            );
+          })()}
         </BottomSheet>
       </div>
     </>

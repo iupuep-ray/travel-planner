@@ -14,9 +14,18 @@ export interface TransportPlan {
   steps: TransportStep[];
 }
 
+export interface TransportConnection {
+  fromScheduleId: string | null; // null 表示旅程開始前
+  transportPlans: TransportPlan[];
+  selectedTransportPlanId?: string | null;
+}
+
 export interface ScheduleTransportMeta {
+  // 舊版格式（向下相容）
   transportPlans?: TransportPlan[];
   selectedTransportPlanId?: string | null;
+  // 新版格式：以來源 ID 為 key 的交通連接
+  transportConnections?: Record<string, TransportConnection>;
 }
 
 // 機票資訊
