@@ -34,6 +34,7 @@ import {
   faEnvelope,
   faCamera,
   faBell,
+  faSearchPlus,
 } from '@fortawesome/free-solid-svg-icons';
 
 // Regular Icons
@@ -88,6 +89,9 @@ library.add(
   faCamera,
   faBell,
 
+  // Image
+  faSearchPlus,
+
   // Regular
   faCircleCheckRegular,
   faSquareCheckRegular,
@@ -138,4 +142,7 @@ export const ICON_NAMES = {
   EMAIL: 'envelope',
   CAMERA: 'camera',
   BELL: 'bell',
+
+  // Image
+  SEARCH_PLUS: 'search-plus',
 } as const;

@@ -1,7 +1,9 @@
+import { useState } from 'react';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import type { Schedule } from '@/types';
 import { formatTime, formatDisplayDate, parseDate } from '@/utils/date';
 import { ICON_NAMES } from '@/utils/fontawesome';
+import ImageLightbox from '@/components/ImageLightbox';
 
 interface ScheduleDetailProps {
   schedule: Schedule;
@@ -32,6 +34,13 @@ const isValidDateTimeString = (value?: string): boolean => {
 };
 
 const ScheduleDetail = ({ schedule, onEdit, onDelete }: ScheduleDetailProps) => {
+  const [lightboxOpen, setLightboxOpen] = useState(false);
+  const [lightboxIndex, setLightboxIndex] = useState(0);
+
+  const openLightbox = (index: number) => {
+    setLightboxIndex(index);
+    setLightboxOpen(true);
+  };
 
   const handleDelete = () => {
     const scheduleName = schedule.type === 'flight'
@@ -201,8 +210,8 @@ const ScheduleDetail = ({ schedule, onEdit, onDelete }: ScheduleDetailProps) => 
               {schedule.images.map((imageUrl, index) => (
                 <div
                   key={index}
-                  className="relative aspect-square rounded-[16px] overflow-hidden bg-cream cursor-pointer transition-transform active:scale-95"
-                  onClick={() => window.open(imageUrl, '_blank')}
+                  className="relative aspect-square rounded-[16px] overflow-hidden bg-cream cursor-pointer transition-transform active:scale-95 group"
+                  onClick={() => openLightbox(index)}
                 >
                   <img
                     src={imageUrl}
@@ -210,9 +219,22 @@ const ScheduleDetail = ({ schedule, onEdit, onDelete }: ScheduleDetailProps) => 
                     className="w-full h-full object-cover"
                     loading="lazy"
                   />
+                  <div className="absolute inset-0 bg-black bg-opacity-0 group-hover:bg-opacity-20 transition-all flex items-center justify-center">
+                    <FontAwesomeIcon
+                      icon={['fas', ICON_NAMES.SEARCH_PLUS]}
+                      className="text-white text-2xl opacity-0 group-hover:opacity-100 transition-opacity"
+                    />
+                  </div>
                 </div>
               ))}
             </div>
+            {lightboxOpen && (
+              <ImageLightbox
+                images={schedule.images}
+                initialIndex={lightboxIndex}
+                onClose={() => setLightboxOpen(false)}
+              />
+            )}
           </div>
         )}
       </div>
@@ -328,8 +350,8 @@ const ScheduleDetail = ({ schedule, onEdit, onDelete }: ScheduleDetailProps) => 
             {displaySchedule.images.map((imageUrl, index) => (
               <div
                 key={index}
-                className="relative aspect-square rounded-[16px] overflow-hidden bg-cream cursor-pointer transition-transform active:scale-95"
-                onClick={() => window.open(imageUrl, '_blank')}
+                className="relative aspect-square rounded-[16px] overflow-hidden bg-cream cursor-pointer transition-transform active:scale-95 group"
+                onClick={() => openLightbox(index)}
               >
                 <img
                   src={imageUrl}
@@ -337,9 +359,22 @@ const ScheduleDetail = ({ schedule, onEdit, onDelete }: ScheduleDetailProps) => 
                   className="w-full h-full object-cover"
                   loading="lazy"
                 />
+                <div className="absolute inset-0 bg-black bg-opacity-0 group-hover:bg-opacity-20 transition-all flex items-center justify-center">
+                  <FontAwesomeIcon
+                    icon={['fas', ICON_NAMES.SEARCH_PLUS]}
+                    className="text-white text-2xl opacity-0 group-hover:opacity-100 transition-opacity"
+                  />
+                </div>
               </div>
             ))}
           </div>
+          {lightboxOpen && (
+            <ImageLightbox
+              images={displaySchedule.images}
+              initialIndex={lightboxIndex}
+              onClose={() => setLightboxOpen(false)}
+            />
+          )}
         </div>
       )}
     </div>

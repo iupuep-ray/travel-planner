@@ -31,7 +31,7 @@ const TRIP_LOCATIONS: Record<string, TripLocation> = {
   '05-14': { name: '大阪', latitude: 34.6937, longitude: 135.5023 },
   '05-15': { name: '大阪', latitude: 34.6937, longitude: 135.5023 },
   '05-16': { name: '京都宇治', latitude: 34.8844, longitude: 135.7997 },
-  '05-17': { name: '京都天橋立', latitude: 35.5763, longitude: 135.1967 },
+  '05-17': { name: '大阪', latitude: 34.6937, longitude: 135.5023 },
   '05-18': { name: '大阪', latitude: 34.6937, longitude: 135.5023 },
 };
 const TRIP_DATE_KEYS = ['05-12', '05-13', '05-14', '05-15', '05-16', '05-17', '05-18'] as const;
