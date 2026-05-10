@@ -17,11 +17,23 @@ const COLLECTION_NAME = 'schedules';
 // 移除 id 和 createdAt，因為這些由 Firestore 自動管理
 export type ScheduleInput = Omit<Schedule, 'id' | 'createdAt'>;
 
+// 移除 undefined 欄位的輔助函數
+const removeUndefinedFields = (obj: any): any => {
+  const cleaned: any = {};
+  Object.keys(obj).forEach(key => {
+    if (obj[key] !== undefined) {
+      cleaned[key] = obj[key];
+    }
+  });
+  return cleaned;
+};
+
 // 新增行程
 export const addSchedule = async (data: ScheduleInput): Promise<string> => {
   try {
+    const cleanedData = removeUndefinedFields(data);
     const docRef = await addDoc(collection(db, COLLECTION_NAME), {
-      ...data,
+      ...cleanedData,
       createdAt: Timestamp.now(),
       updatedAt: Timestamp.now(),
     });
@@ -35,9 +47,10 @@ export const addSchedule = async (data: ScheduleInput): Promise<string> => {
 // 更新行程
 export const updateSchedule = async (id: string, data: Partial<ScheduleInput>): Promise<void> => {
   try {
+    const cleanedData = removeUndefinedFields(data);
     const scheduleRef = doc(db, COLLECTION_NAME, id);
     await updateDoc(scheduleRef, {
-      ...data,
+      ...cleanedData,
       updatedAt: Timestamp.now(),
     });
   } catch (error) {
