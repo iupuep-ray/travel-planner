@@ -6,7 +6,7 @@ export interface TransportStep {
   mode: string;
   duration: string;
   note?: string;
-  image?: string;
+  images?: string[];
 }
 
 export interface TransportPlan {

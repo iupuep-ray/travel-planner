@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { ICON_NAMES } from '@/utils/fontawesome';
 import { uploadImage } from '@/services/storageService';
+import ImageLightbox from '@/components/ImageLightbox';
 import type { Schedule, TransportPlan, TransportStep } from '@/types';
 
 interface TransportPlanSheetProps {
@@ -23,7 +24,7 @@ const createEmptyStep = (): TransportStep => ({
   mode: '',
   duration: '',
   note: '',
-  image: '',
+  images: [],
 });
 
 const createEmptyPlan = (): TransportPlan => ({
@@ -50,7 +51,10 @@ const TransportPlanSheet = ({
   const [plans, setPlans] = useState<TransportPlan[]>([]);
   const [selectedPlanId, setSelectedPlanId] = useState<string | undefined>(undefined);
   const [isSaving, setIsSaving] = useState(false);
-  const [pendingImages, setPendingImages] = useState<Record<string, File | null>>({});
+  const [pendingImages, setPendingImages] = useState<Record<string, File[]>>({});
+  const [lightboxOpen, setLightboxOpen] = useState(false);
+  const [lightboxImages, setLightboxImages] = useState<string[]>([]);
+  const [lightboxIndex, setLightboxIndex] = useState(0);
 
   useEffect(() => {
     const seededPlans = initialPlans && initialPlans.length > 0 ? initialPlans : [createEmptyPlan()];
@@ -62,8 +66,8 @@ const TransportPlanSheet = ({
   const updateStep = (
     planId: string,
     stepId: string,
-    key: 'mode' | 'duration' | 'note' | 'image',
-    value: string
+    key: 'mode' | 'duration' | 'note' | 'images',
+    value: string | string[]
   ) => {
     setPlans((prev) =>
       prev.map((plan) =>
@@ -102,24 +106,58 @@ const TransportPlanSheet = ({
     });
   };
 
-  const handleImageChange = (planId: string, stepId: string, file?: File) => {
-    if (!file) return;
-    if (!file.type.startsWith('image/')) {
-      alert('請選擇圖片檔案');
-      return;
-    }
-    if (file.size > 5 * 1024 * 1024) {
-      alert('圖片檔案大小不得超過 5MB');
-      return;
+  const handleImageChange = (planId: string, stepId: string, files: FileList | null) => {
+    if (!files || files.length === 0) return;
+
+    const validFiles: File[] = [];
+    for (let i = 0; i < files.length; i++) {
+      const file = files[i];
+      if (!file.type.startsWith('image/')) {
+        alert(`${file.name} 不是圖片檔案`);
+        continue;
+      }
+      if (file.size > 5 * 1024 * 1024) {
+        alert(`${file.name} 檔案大小超過 5MB`);
+        continue;
+      }
+      validFiles.push(file);
     }
 
-    setPendingImages((prev) => ({ ...prev, [stepId]: file }));
-    updateStep(planId, stepId, 'image', URL.createObjectURL(file));
+    if (validFiles.length === 0) return;
+
+    // 取得當前 step 的現有圖片
+    const currentStep = plans.find(p => p.id === planId)?.steps.find(s => s.id === stepId);
+    const currentImages = currentStep?.images || [];
+    const currentPendingFiles = pendingImages[stepId] || [];
+
+    // 合併新檔案
+    setPendingImages((prev) => ({
+      ...prev,
+      [stepId]: [...currentPendingFiles, ...validFiles]
+    }));
+
+    // 生成預覽 URL 並合併到現有圖片
+    const newPreviewUrls = validFiles.map(file => URL.createObjectURL(file));
+    updateStep(planId, stepId, 'images', [...currentImages, ...newPreviewUrls]);
   };
 
-  const removeImage = (planId: string, stepId: string) => {
-    setPendingImages((prev) => ({ ...prev, [stepId]: null }));
-    updateStep(planId, stepId, 'image', '');
+  const removeImage = (planId: string, stepId: string, imageIndex: number) => {
+    const currentStep = plans.find(p => p.id === planId)?.steps.find(s => s.id === stepId);
+    const currentImages = currentStep?.images || [];
+    const currentPendingFiles = pendingImages[stepId] || [];
+
+    // 移除對應的圖片和待上傳檔案
+    const newImages = currentImages.filter((_, i) => i !== imageIndex);
+    const newPendingFiles = currentPendingFiles.filter((_, i) => i !== imageIndex);
+
+    setPendingImages((prev) => ({ ...prev, [stepId]: newPendingFiles }));
+    updateStep(planId, stepId, 'images', newImages);
+  };
+
+  const openLightbox = (images: string[], index: number) => {
+    setLightboxImages(images);
+    setLightboxIndex(index);
+    setLightboxOpen(true);
   };
 
   const addPlan = () => {
@@ -169,18 +207,30 @@ const TransportPlanSheet = ({
         ...plan,
         steps: Promise.all(
           plan.steps.map(async (step) => {
-            let image = (step.image || '').trim();
-            const pendingFile = pendingImages[step.id];
-            if (pendingFile) {
-              image = await uploadImage(pendingFile, 'transports');
+            const existingImages = step.images || [];
+            const pendingFiles = pendingImages[step.id] || [];
+
+            // 上傳新圖片
+            let uploadedUrls: string[] = [];
+            if (pendingFiles.length > 0) {
+              try {
+                const uploadPromises = pendingFiles.map(file => uploadImage(file, 'transports'));
+                uploadedUrls = await Promise.all(uploadPromises);
+              } catch (error) {
+                console.error('圖片上傳失敗:', error);
+              }
             }
+
+            // 過濾掉 blob URLs（預覽用的臨時 URL）
+            const savedImages = existingImages.filter(url => url.startsWith('http'));
+            const allImages = [...savedImages, ...uploadedUrls];
 
             return {
               ...step,
               mode: step.mode.trim(),
               duration: step.duration.trim(),
               note: (step.note || '').trim(),
-              image,
+              images: allImages,
             };
           })
         ),
@@ -190,7 +240,7 @@ const TransportPlanSheet = ({
     const resolvedPlans = (await Promise.all(
       normalizedPlans.map(async (plan) => ({
         ...plan,
-        steps: (await plan.steps).filter((step) => step.mode || step.duration || step.note || step.image),
+        steps: (await plan.steps).filter((step) => step.mode || step.duration || step.note || (step.images && step.images.length > 0)),
       }))
     )).filter((plan) => plan.steps.length > 0);
 
@@ -331,31 +381,55 @@ const TransportPlanSheet = ({
                       )}
                     </div>
                     <div>
-                      <label className="block text-sm font-bold text-brown mb-2">圖片</label>
-                      <input
-                        type="file"
-                        accept="image/*"
-                        onChange={(e) => handleImageChange(plan.id, step.id, e.target.files?.[0])}
-                        className="block w-full text-sm text-brown file:mr-3 file:rounded-[14px] file:border-0 file:bg-primary file:px-4 file:py-2 file:font-bold file:text-white"
-                      />
-                      {step.image && (
-                        <div className="mt-3">
-                          <div className="relative w-full max-w-[220px] overflow-hidden rounded-[18px] border border-[#EFE4D6] bg-[#FFFDF8]">
-                            <img
-                              src={step.image}
-                              alt="交通資訊圖片"
-                              className="h-32 w-full object-cover"
-                            />
-                          </div>
-                          <button
-                            type="button"
-                            onClick={() => removeImage(plan.id, step.id)}
-                            className="mt-2 text-xs font-bold text-red-500"
-                          >
-                            移除圖片
-                          </button>
+                      <label className="block text-sm font-bold text-brown mb-2">
+                        <FontAwesomeIcon icon={['fas', ICON_NAMES.IMAGE]} className="mr-2" />
+                        照片上傳
+                      </label>
+
+                      {/* 現有圖片預覽 */}
+                      {step.images && step.images.length > 0 && (
+                        <div className="grid grid-cols-3 gap-2 mb-3">
+                          {step.images.map((imageUrl, index) => (
+                            <div key={index} className="relative aspect-square rounded-[12px] overflow-hidden group">
+                              <img
+                                src={imageUrl}
+                                alt={`圖片 ${index + 1}`}
+                                className="w-full h-full object-cover cursor-pointer"
+                                onClick={() => openLightbox(step.images || [], index)}
+                              />
+                              <div className="absolute inset-0 bg-black bg-opacity-0 group-hover:bg-opacity-20 transition-all flex items-center justify-center">
+                                <FontAwesomeIcon
+                                  icon={['fas', ICON_NAMES.SEARCH_PLUS]}
+                                  className="text-white text-xl opacity-0 group-hover:opacity-100 transition-opacity"
+                                />
+                              </div>
+                              <button
+                                type="button"
+                                onClick={() => removeImage(plan.id, step.id, index)}
+                                className="absolute top-1 right-1 w-6 h-6 rounded-full bg-red-500 text-white flex items-center justify-center text-xs transition-transform active:scale-95"
+                              >
+                                <FontAwesomeIcon icon={['fas', ICON_NAMES.CLOSE]} />
+                              </button>
+                            </div>
+                          ))}
                         </div>
                       )}
+
+                      {/* 上傳按鈕 */}
+                      <label className="block w-full py-3 px-4 rounded-[18px] bg-cream text-brown font-bold text-center cursor-pointer transition-transform active:scale-95 border-2 border-dashed border-brown text-sm">
+                        <FontAwesomeIcon icon={['fas', ICON_NAMES.ADD]} className="mr-2" />
+                        選擇圖片
+                        <input
+                          type="file"
+                          accept="image/*"
+                          multiple
+                          onChange={(e) => handleImageChange(plan.id, step.id, e.target.files)}
+                          className="hidden"
+                        />
+                      </label>
+                      <p className="text-xs text-brown opacity-60 mt-2 text-center">
+                        圖片將自動壓縮為 WebP 格式，長邊最大 1200px
+                      </p>
                     </div>
                   </div>
                 </div>
@@ -388,6 +462,15 @@ const TransportPlanSheet = ({
           {isSaving ? '儲存中...' : '儲存交通方式'}
         </button>
       </form>
+
+      {/* Image Lightbox */}
+      {lightboxOpen && (
+        <ImageLightbox
+          images={lightboxImages}
+          initialIndex={lightboxIndex}
+          onClose={() => setLightboxOpen(false)}
+        />
+      )}
     </div>
   );
 };
